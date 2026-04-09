@@ -610,10 +610,6 @@ function DisponibilidadSection({
         body: JSON.stringify({ availability }),
       });
 
-      console.log(
-        "Disponibilidad actualizada, invalidar cache de slots para:",
-        professional.slug
-      );
       onSaved();
     } catch {
       // silent

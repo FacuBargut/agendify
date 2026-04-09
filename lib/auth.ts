@@ -43,13 +43,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           slug = `${slug}-${Date.now().toString(36)}`;
         }
 
-        await db.professional.create({
+        const newPro = await db.professional.create({
           data: {
             name,
             email: user.email,
             slug,
             avatarUrl: user.image || null,
           },
+        });
+
+        // Auto-create default availability (Mon-Fri 09:00-18:00)
+        await db.availability.createMany({
+          data: [1, 2, 3, 4, 5].map((day) => ({
+            professionalId: newPro.id,
+            dayOfWeek: day,
+            startTime: "09:00",
+            endTime: "18:00",
+            slotDuration: 50,
+            active: true,
+          })),
         });
       }
 

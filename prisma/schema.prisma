@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Professional {
+  id              String   @id @default(cuid())
+  name            String
+  email           String   @unique
+  slug            String   @unique
+  specialty       String   @default("psychology")
+  bio             String?
+  avatarUrl       String?
+  phone           String?
+  sessionPrice    Float    @default(15000)
+  depositPercent  Int      @default(30)
+  sessionDuration Int      @default(50)
+  plan            String   @default("basic")
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  availability Availability[]
+  appointments Appointment[]
+  patients     Patient[]
+}
+
+model Patient {
+  id             String   @id @default(cuid())
+  professionalId String
+  name           String
+  phone          String
+  email          String?
+  notes          String?
+  status         String   @default("active")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  professional Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  appointments Appointment[]
+
+  @@unique([professionalId, phone])
+}
+
+model Appointment {
+  id              String   @id @default(cuid())
+  professionalId  String
+  patientId       String?
+  patientName     String
+  patientPhone    String
+  date            DateTime
+  durationMin     Int      @default(50)
+  status          String   @default("pending")
+  paymentStatus   String   @default("unpaid")
+  depositAmount   Float?
+  totalAmount     Float?
+  mpPaymentId     String?
+  mpPreferenceId  String?
+  notes           String?
+  reminder48hSent Boolean  @default(false)
+  reminder2hSent  Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  professional Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  patient      Patient?     @relation(fields: [patientId], references: [id])
+}
+
+model Availability {
+  id             String  @id @default(cuid())
+  professionalId String
+  dayOfWeek      Int
+  startTime      String
+  endTime        String
+  slotDuration   Int     @default(50)
+  active         Boolean @default(true)
+
+  professional Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+
+  @@unique([professionalId, dayOfWeek])
+}

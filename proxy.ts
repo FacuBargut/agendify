@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const protectedPaths = ["/agenda", "/pacientes", "/perfil", "/configuracion"];
+const protectedPaths = ["/agenda", "/pacientes", "/turnos", "/perfil", "/configuracion"];
 const publicOnlyPaths = ["/login"];
 
 export function proxy(request: NextRequest) {

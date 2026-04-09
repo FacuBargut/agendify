@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 interface AvailabilityInput {
@@ -19,7 +20,7 @@ export async function PUT(request: Request) {
   const { availability } = await request.json();
   const professionalId = session.user.professionalId;
 
-  await db.$transaction(async (tx) => {
+  await db.$transaction(async (tx: Prisma.TransactionClient) => {
     await tx.availability.deleteMany({
       where: { professionalId },
     });

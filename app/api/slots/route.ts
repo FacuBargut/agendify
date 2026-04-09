@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const date = new Date(dateStr);
+  const date = new Date(dateStr + "T12:00:00");
 
   // Find professional
   const professional = await db.professional.findUnique({

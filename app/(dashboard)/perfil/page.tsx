@@ -31,7 +31,7 @@ export default async function PerfilPage() {
     depositPercent: professional.depositPercent,
     sessionDuration: professional.sessionDuration,
     plan: professional.plan,
-    availability: professional.availability.map((a) => ({
+    availability: professional.availability.map((a: typeof professional.availability[number]) => ({
       dayOfWeek: a.dayOfWeek,
       startTime: a.startTime,
       endTime: a.endTime,

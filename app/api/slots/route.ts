@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
     },
   });
 
-  const bookedTimes = appointments.map((a) => format(a.date, "HH:mm"));
+  const bookedTimes = appointments.map((a: typeof appointments[number]) => format(a.date, "HH:mm"));
 
   const slots = generateSlots(
     availability.startTime,

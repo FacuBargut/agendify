@@ -24,7 +24,7 @@ export default async function PacientesPage() {
     },
   });
 
-  const serialized = patients.map((p) => ({
+  const serialized = patients.map((p: typeof patients[number]) => ({
     id: p.id,
     name: p.name,
     phone: p.phone,

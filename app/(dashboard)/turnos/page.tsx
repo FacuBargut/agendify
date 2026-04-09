@@ -25,7 +25,7 @@ export default async function TurnosPage() {
     select: { id: true, name: true, phone: true },
   });
 
-  const serialized = appointments.map((a) => ({
+  const serialized = appointments.map((a: typeof appointments[number]) => ({
     id: a.id,
     patientId: a.patientId,
     patientName: a.patientName,
@@ -39,7 +39,7 @@ export default async function TurnosPage() {
     notes: a.notes,
   }));
 
-  const serializedPatients = patients.map((p) => ({
+  const serializedPatients = patients.map((p: typeof patients[number]) => ({
     id: p.id,
     name: p.name,
     phone: p.phone,

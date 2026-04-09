@@ -31,7 +31,7 @@ export default async function AgendaPage({
     orderBy: { date: "asc" },
   });
 
-  const serialized: SerializedAppointment[] = appointments.map((a) => ({
+  const serialized: SerializedAppointment[] = appointments.map((a: typeof appointments[number]) => ({
     id: a.id,
     patientName: a.patientName,
     patientPhone: a.patientPhone,

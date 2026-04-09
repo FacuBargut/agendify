@@ -54,7 +54,7 @@ export default async function PacienteDetailPage({
     status: patient.status as "active" | "paused" | "discharged",
     createdAt: patient.createdAt.toISOString(),
     specialty: patient.professional.specialty,
-    appointments: patient.appointments.map((a) => ({
+    appointments: patient.appointments.map((a: typeof patient.appointments[number]) => ({
       id: a.id,
       date: a.date.toISOString(),
       status: a.status,

@@ -12,6 +12,9 @@ function slugify(name: string): string {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  // Necesario en Vercel/serverless para que NextAuth confíe en el host
+  // y pueda leer correctamente las cookies de PKCE del flujo OAuth.
+  trustHost: true,
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID!,

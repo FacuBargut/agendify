@@ -31,6 +31,8 @@ export async function PATCH(request: Request) {
     "sessionPrice",
     "depositPercent",
     "sessionDuration",
+    "transferAlias",
+    "mpSurchargePercent",
   ];
   const data: Record<string, unknown> = {};
   for (const key of allowed) {

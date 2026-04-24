@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { ArrowLeft, CalendarDays, Check, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { ArrowLeft, CalendarDays, Check, Loader2, Clock, MessageCircle } from "lucide-react";
+import { cn, formatPeso } from "@/lib/utils";
 import BookingCalendar from "@/components/paciente/BookingCalendar";
 import TimeSlotGrid from "@/components/paciente/TimeSlotGrid";
 import BookingForm from "@/components/paciente/BookingForm";
@@ -39,14 +39,12 @@ function StepIndicator({ current }: { current: BookingStep }) {
             <div
               className={cn(
                 "flex h-2 w-2 items-center justify-center rounded-full",
-                completed
-                  ? "bg-primary"
-                  : active
-                    ? "bg-primary"
-                    : "bg-border"
+                completed ? "bg-primary" : active ? "bg-primary" : "bg-border"
               )}
             >
-              {completed && <Check size={6} strokeWidth={3} className="text-white" />}
+              {completed && (
+                <Check size={6} strokeWidth={3} className="text-white" />
+              )}
             </div>
           </div>
         );
@@ -65,6 +63,102 @@ function getInitials(name: string): string {
     .toUpperCase();
 }
 
+// ── Vista: transferencia pendiente de confirmación ──────────────
+function TransferPendingView({
+  patientName,
+  selectedDate,
+  selectedTime,
+  professionalName,
+  depositAmount,
+}: {
+  patientName: string;
+  selectedDate: Date;
+  selectedTime: string;
+  professionalName: string;
+  depositAmount: number;
+}) {
+  const dateStr = format(selectedDate, "EEEE d 'de' MMMM", { locale: es });
+
+  return (
+    <div className="flex flex-col items-center px-2 pt-4">
+      <div className="mb-4 flex h-[88px] w-[88px] items-center justify-center rounded-full bg-[#FFFBEB]">
+        <Clock size={52} strokeWidth={1.5} className="text-warning" />
+      </div>
+
+      <h2 className="text-xl font-semibold text-text-primary">
+        Solicitud enviada
+      </h2>
+      <p className="mt-1 text-center text-sm text-text-secondary">
+        Hola {patientName}, recibimos tu solicitud de turno.
+      </p>
+
+      {/* Resumen */}
+      <div className="mt-5 w-full rounded-lg border border-border bg-surface p-4">
+        <SummaryRow label="Profesional" value={professionalName} />
+        <SummaryRow label="Fecha" value={dateStr} capitalize />
+        <SummaryRow label="Horario" value={`${selectedTime} hs`} />
+        <div className="my-2 border-t border-border" />
+        <SummaryRow label="Seña transferida" value={formatPeso(depositAmount)} highlight />
+      </div>
+
+      {/* Estado pendiente */}
+      <div className="mt-4 w-full rounded-lg border border-warning/30 bg-[#FFFBEB] p-4">
+        <div className="flex items-start gap-3">
+          <Clock size={18} className="mt-0.5 shrink-0 text-warning" />
+          <div>
+            <p className="text-[13px] font-medium text-warning">
+              Esperando confirmación del profesional
+            </p>
+            <p className="mt-1 text-[12px] text-text-secondary">
+              El profesional verificará tu transferencia y confirmará el turno.
+              Tu lugar está reservado por 24 horas.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* WhatsApp */}
+      <div className="mt-3 w-full rounded-lg border border-border border-l-4 border-l-[#25D366] bg-background p-4">
+        <div className="flex items-start gap-3">
+          <MessageCircle size={18} className="mt-0.5 shrink-0 text-[#25D366]" />
+          <p className="text-[13px] text-text-primary">
+            Te avisaremos por WhatsApp cuando el profesional confirme tu turno.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SummaryRow({
+  label,
+  value,
+  capitalize: cap,
+  highlight,
+}: {
+  label: string;
+  value: string;
+  capitalize?: boolean;
+  highlight?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between py-1.5">
+      <span
+        className={`text-[13px] ${highlight ? "font-semibold text-primary" : "text-text-secondary"}`}
+      >
+        {label}
+      </span>
+      <span
+        className={`text-[13px] font-medium ${highlight ? "font-semibold text-primary" : "text-text-primary"} ${cap ? "capitalize" : ""}`}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+
 interface BookingFlowProps {
   professional: ProfessionalPublic;
 }
@@ -76,6 +170,9 @@ export default function BookingFlow({ professional }: BookingFlowProps) {
   const [formData, setFormData] = useState<BookingFormData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Para la vista de confirmación de transferencia
+  const [transferDeposit, setTransferDeposit] = useState(0);
+
   // Slots fetched from API per day
   const [slotsCache, setSlotsCache] = useState<Record<string, TimeSlot[]>>({});
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -83,23 +180,19 @@ export default function BookingFlow({ professional }: BookingFlowProps) {
   const pro = professional;
   const specialtyLabel = SPECIALTY_LABELS[pro.specialty] || pro.specialty;
 
-  // Fetch slots for a given date
   const fetchSlots = useCallback(
     async (date: Date) => {
       const key = format(date, "yyyy-MM-dd");
       if (slotsCache[key]) return;
-
       setLoadingSlots(true);
       try {
-        const res = await fetch(
-          `/api/slots?slug=${pro.slug}&date=${key}`
-        );
+        const res = await fetch(`/api/slots?slug=${pro.slug}&date=${key}`);
         if (res.ok) {
           const data = await res.json();
           setSlotsCache((prev) => ({ ...prev, [key]: data.slots }));
         }
       } catch {
-        // Silently fail — calendar will show no slots
+        // ignore
       } finally {
         setLoadingSlots(false);
       }
@@ -107,7 +200,6 @@ export default function BookingFlow({ professional }: BookingFlowProps) {
     [pro.slug, slotsCache]
   );
 
-  // Pre-fetch slots for the visible month range (14 days)
   useEffect(() => {
     async function prefetch() {
       const today = new Date();
@@ -117,9 +209,7 @@ export default function BookingFlow({ professional }: BookingFlowProps) {
         const key = format(d, "yyyy-MM-dd");
         if (!slotsCache[key]) {
           try {
-            const res = await fetch(
-              `/api/slots?slug=${pro.slug}&date=${key}`
-            );
+            const res = await fetch(`/api/slots?slug=${pro.slug}&date=${key}`);
             if (res.ok) {
               const data = await res.json();
               setSlotsCache((prev) => ({ ...prev, [key]: data.slots }));
@@ -131,7 +221,6 @@ export default function BookingFlow({ professional }: BookingFlowProps) {
       }
     }
     prefetch();
-    // Only run on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -156,6 +245,15 @@ export default function BookingFlow({ professional }: BookingFlowProps) {
     console.log("[Agendify] Redirecting to MP checkout:", initPoint);
   }
 
+  // Cuando el paciente completó la transferencia: guardamos el monto
+  // y cambiamos el step DESPUÉS de que React haya procesado el callback.
+  // Usamos setTimeout(0) para evitar que el batching de React 18 desmonte
+  // PaymentSummary antes de que podamos mostrar la vista de éxito.
+  function handleTransferDone(depositAmount: number) {
+    setTransferDeposit(depositAmount);
+    setTimeout(() => setStep("confirmed"), 0);
+  }
+
   function goBack() {
     if (step === "select-time") setStep("select-date");
     else if (step === "fill-form") setStep("select-time");
@@ -170,12 +268,13 @@ export default function BookingFlow({ professional }: BookingFlowProps) {
     ? format(selectedDate, "EEEE d 'de' MMMM", { locale: es })
     : "";
 
-  // Build a professional-like object for PaymentSummary
   const proForPayment = {
     ...pro,
     sessionDurationMin: pro.sessionDuration,
-    avatarInitials: getInitials(pro.name),
     specialty: specialtyLabel,
+    transferAlias: pro.transferAlias ?? null,
+    mpSurchargePercent: pro.mpSurchargePercent ?? 0,
+    slug: pro.slug,
   };
 
   return (
@@ -192,12 +291,8 @@ export default function BookingFlow({ professional }: BookingFlowProps) {
               </span>
             </div>
             <div>
-              <h1 className="text-lg font-medium text-text-primary">
-                {pro.name}
-              </h1>
-              <p className="text-[13px] text-text-secondary">
-                {specialtyLabel}
-              </p>
+              <h1 className="text-lg font-medium text-text-primary">{pro.name}</h1>
+              <p className="text-[13px] text-text-secondary">{specialtyLabel}</p>
             </div>
           </div>
 
@@ -296,8 +391,20 @@ export default function BookingFlow({ professional }: BookingFlowProps) {
                 isLoading={isLoading}
                 setIsLoading={setIsLoading}
                 onPaymentReady={handlePaymentReady}
+                onTransferDone={handleTransferDone}
               />
             </>
+          )}
+
+          {/* Step: Confirmed (transferencia pendiente) */}
+          {step === "confirmed" && selectedDate && selectedTime && formData && (
+            <TransferPendingView
+              patientName={formData.patientName}
+              selectedDate={selectedDate}
+              selectedTime={selectedTime}
+              professionalName={pro.name}
+              depositAmount={transferDeposit}
+            />
           )}
         </div>
       </div>

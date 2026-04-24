@@ -15,17 +15,20 @@ model Professional {
   bio             String?
   avatarUrl       String?
   phone           String?
-  sessionPrice    Float    @default(15000)
-  depositPercent  Int      @default(30)
-  sessionDuration Int      @default(50)
-  plan            String   @default("basic")
-  active          Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  sessionPrice       Float    @default(15000)
+  depositPercent     Int      @default(30)
+  sessionDuration    Int      @default(50)
+  plan               String   @default("basic")
+  active             Boolean  @default(true)
+  transferAlias      String?                    // alias/CBU/CVU para transferencias
+  mpSurchargePercent Float    @default(0)       // recargo % aplicado al cobrar con MP
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
-  availability Availability[]
-  appointments Appointment[]
-  patients     Patient[]
+  availability  Availability[]
+  appointments  Appointment[]
+  patients      Patient[]
+  notifications Notification[]
 }
 
 model Patient {
@@ -53,20 +56,38 @@ model Appointment {
   patientPhone    String
   date            DateTime
   durationMin     Int      @default(50)
-  status          String   @default("pending")
-  paymentStatus   String   @default("unpaid")
-  depositAmount   Float?
-  totalAmount     Float?
-  mpPaymentId     String?
-  mpPreferenceId  String?
-  notes           String?
-  reminder48hSent Boolean  @default(false)
-  reminder2hSent  Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  status               String    @default("pending")
+  paymentStatus        String    @default("unpaid")
+  depositAmount        Float?
+  totalAmount          Float?
+  mpPaymentId          String?
+  mpPreferenceId       String?
+  notes                String?
+  reminder48hSent      Boolean   @default(false)
+  reminder2hSent       Boolean   @default(false)
+  // Campos para transferencia bancaria
+  paymentMethod        String    @default("mercadopago")   // "mercadopago" | "transferencia"
+  transferProofRef     String?                             // número de comprobante ingresado por el paciente
+  transferExpiresAt    DateTime?                           // cuándo expira la reserva pendiente (24hs)
+  transferConfirmedAt  DateTime?                           // cuándo el profesional confirmó
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
 
   professional Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
   patient      Patient?     @relation(fields: [patientId], references: [id])
+}
+
+model Notification {
+  id             String   @id @default(cuid())
+  professionalId String
+  type           String   // "new_transfer" | "new_mp_payment" | "transfer_confirmed" | "transfer_rejected"
+  title          String
+  body           String
+  read           Boolean  @default(false)
+  appointmentId  String?  // referencia opcional al turno
+  createdAt      DateTime @default(now())
+
+  professional Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
 }
 
 model Availability {

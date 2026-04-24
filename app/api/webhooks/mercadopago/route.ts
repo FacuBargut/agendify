@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { createNotification } from "@/lib/notifications";
 
 interface WebhookBody {
   type: string;
@@ -106,7 +107,18 @@ export async function POST(request: Request) {
 
       console.log("[MP Webhook] Turno creado en DB:", appointment.id);
 
-      // 4. Enviar WhatsApp de confirmación
+      // 4. Notificación in-app al profesional
+      createNotification({
+        professionalId: professional.id,
+        type: "new_mp_payment",
+        appointmentId: appointment.id,
+        patientName: ref.patientName,
+        date: new Date(`${ref.date.split("T")[0]}T${ref.time}:00`),
+        time: ref.time,
+        depositAmount: ref.depositAmount,
+      });
+
+      // 5. Enviar WhatsApp de confirmación
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
       try {
         await fetch(`${appUrl}/api/whatsapp/send`, {

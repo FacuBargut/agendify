@@ -125,6 +125,93 @@ Si querés reservar un nuevo turno podés hacerlo desde el mismo link. ¡Hasta l
 
 El turno quedó confirmado automáticamente. ✅`;
   },
+
+  // ── Transferencia bancaria ───────────────────────────────────
+
+  transferenciaPendienteProfesional: (params: {
+    patientName: string;
+    patientPhone: string;
+    date: Date;
+    time: string;
+    depositAmount: number;
+    transferProofRef?: string;
+  }) => {
+    const fecha = capitalizeFecha(params.date);
+    const comprobante = params.transferProofRef
+      ? `\n🧾 *Comprobante:* ${params.transferProofRef}`
+      : "";
+
+    return `🔔 *Nueva solicitud de turno — Transferencia*
+
+Un paciente realizó una transferencia y está esperando confirmación:
+
+*Paciente:* ${params.patientName}
+*Teléfono:* ${params.patientPhone}
+📅 *Fecha:* ${fecha}
+🕐 *Horario:* ${params.time} hs
+💰 *Seña declarada:* $${params.depositAmount.toLocaleString("es-AR")}${comprobante}
+
+Verificá que el monto llegó a tu cuenta y confirmá el turno desde Agendify.
+
+⚠️ El turno se liberará automáticamente en 24hs si no lo confirmás.`;
+  },
+
+  transferenciaConfirmadaPaciente: (params: {
+    patientName: string;
+    professionalName: string;
+    date: Date;
+    time: string;
+    depositAmount: number;
+  }) => {
+    const fecha = capitalizeFecha(params.date);
+
+    return `✅ *¡Turno confirmado, ${params.patientName}!*
+
+El profesional verificó tu transferencia y confirmó tu reserva:
+
+📅 *Fecha:* ${fecha}
+🕐 *Horario:* ${params.time} hs
+👩‍⚕️ *Profesional:* ${params.professionalName}
+💰 *Seña verificada:* $${params.depositAmount.toLocaleString("es-AR")}
+
+Te recordaremos 48hs y 2hs antes de tu turno. ¡Hasta pronto! 👋`;
+  },
+
+  transferenciaRechazadaPaciente: (params: {
+    patientName: string;
+    professionalName: string;
+    professionalPhone?: string | null;
+    date: Date;
+    time: string;
+  }) => {
+    const fecha = capitalizeFecha(params.date);
+    const contacto = params.professionalPhone
+      ? `\nContactá al profesional directamente: wa.me/${params.professionalPhone.replace(/\D/g, "")}`
+      : "";
+
+    return `❌ *No pudimos verificar tu transferencia*
+
+Hola ${params.patientName}, el profesional no pudo confirmar el pago para tu turno del ${fecha} a las ${params.time} hs con ${params.professionalName}.
+
+El slot fue liberado. Si el dinero fue debitado de tu cuenta, revisá tu extracto y contactanos.${contacto}`;
+  },
+
+  transferenciaExpiradaPaciente: (params: {
+    patientName: string;
+    professionalName: string;
+    date: Date;
+    time: string;
+    slug: string;
+  }) => {
+    const fecha = capitalizeFecha(params.date);
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://agendify.com.ar";
+
+    return `⏳ *Tu solicitud de turno expiró*
+
+Hola ${params.patientName}, el profesional no confirmó la transferencia en las últimas 24hs. El turno del ${fecha} a las ${params.time} hs con ${params.professionalName} fue liberado.
+
+Si querés reservar de nuevo: ${appUrl}/${params.slug}`;
+  },
 };
 
 // Función principal para enviar mensajes

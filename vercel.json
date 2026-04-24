@@ -3,6 +3,10 @@
     {
       "path": "/api/recordatorios",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/turnos/expirar",
+      "schedule": "0 * * * *"
     }
   ]
 }

@@ -27,6 +27,9 @@ export default async function BookingPage({
     sessionPrice: professional.sessionPrice,
     depositPercent: professional.depositPercent,
     sessionDuration: professional.sessionDuration,
+    transferAlias: professional.transferAlias,
+    mpSurchargePercent: professional.mpSurchargePercent,
+    phone: professional.phone,
   };
 
   return <BookingFlow professional={pro} />;

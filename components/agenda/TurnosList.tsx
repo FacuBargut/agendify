@@ -172,6 +172,25 @@ export default function TurnosList({
     );
   };
 
+  const handleCancelTurno = async (id: string) => {
+    // Actualización optimista
+    setAppointments((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, status: "cancelled" as AppointmentStatus } : a))
+    );
+    try {
+      await fetch(`/api/turnos/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "cancelled" }),
+      });
+    } catch {
+      // Revertir en caso de error
+      setAppointments((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, status: a.status } : a))
+      );
+    }
+  };
+
   return (
     <main className="flex-1 pb-[72px]">
       <div className="px-4 pt-4 pb-2">
@@ -265,6 +284,7 @@ export default function TurnosList({
                   key={turno.id}
                   turno={turno}
                   onClick={() => setSelectedTurno(turno)}
+                  onCancelTurno={handleCancelTurno}
                 />
               ))}
             </div>
@@ -291,63 +311,90 @@ export default function TurnosList({
 function TurnoCompactCard({
   turno,
   onClick,
+  onCancelTurno,
 }: {
   turno: TurnoSerialized;
   onClick: () => void;
+  onCancelTurno: (id: string) => void;
 }) {
   const date = new Date(turno.date);
   const time = format(date, "HH:mm");
   const isCancelled = turno.status === "cancelled";
 
+  function handleCancel(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!confirm(`¿Cancelar el turno de ${turno.patientName}?`)) return;
+    onCancelTurno(turno.id);
+  }
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
+    <div
       className={cn(
-        "mb-2 w-full rounded-lg border border-border bg-background px-3.5 py-3 text-left transition-shadow hover:shadow-md",
+        "mb-2 w-full rounded-lg border border-border bg-background shadow-sm overflow-hidden",
         "border-l-4",
         turno.status === "confirmed" && "border-l-primary",
         turno.status === "pending" && "border-l-warning",
         turno.status === "cancelled" && "border-l-border",
         turno.status === "completed" && "border-l-success",
+        turno.status === "pending_transfer" && "border-l-warning",
         isCancelled && "border-dashed opacity-60"
       )}
     >
-      <div className="flex items-center gap-3">
-        {/* Time */}
-        <div className="flex shrink-0 flex-col items-center">
-          <span className="text-lg font-semibold leading-tight text-text-primary">
-            {time}
-          </span>
-          <span className="text-[11px] text-text-secondary">
-            {turno.durationMin} min
-          </span>
-        </div>
-
-        {/* Patient */}
-        <div className="flex min-w-0 flex-1 items-center gap-2.5">
-          <div className="flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-full bg-primary-light">
-            <span className="text-[12px] font-medium text-primary">
-              {getInitials(turno.patientName)}
+      {/* Área principal clickeable */}
+      <button
+        type="button"
+        onClick={onClick}
+        className="w-full px-3.5 py-3 text-left transition-colors hover:bg-surface"
+      >
+        <div className="flex items-center gap-3">
+          {/* Hora */}
+          <div className="flex shrink-0 flex-col items-center">
+            <span className="text-lg font-semibold leading-tight text-text-primary">
+              {time}
+            </span>
+            <span className="text-[11px] text-text-secondary">
+              {turno.durationMin} min
             </span>
           </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[14px] font-medium text-text-primary">
-              {turno.patientName}
-            </p>
-            <p className="flex items-center gap-1 text-[11px] text-text-secondary">
-              <Phone size={10} strokeWidth={1.5} />
-              {turno.patientPhone}
-            </p>
+
+          {/* Paciente */}
+          <div className="flex min-w-0 flex-1 items-center gap-2.5">
+            <div className="flex h-[36px] w-[36px] shrink-0 items-center justify-center rounded-full bg-primary-light">
+              <span className="text-[12px] font-medium text-primary">
+                {getInitials(turno.patientName)}
+              </span>
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[14px] font-medium text-text-primary">
+                {turno.patientName}
+              </p>
+              <p className="flex items-center gap-1 text-[11px] text-text-secondary">
+                <Phone size={10} strokeWidth={1.5} />
+                {turno.patientPhone}
+              </p>
+            </div>
+          </div>
+
+          {/* Badges */}
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            <StatusBadge status={turno.status} />
+            {!isCancelled && <PaymentBadge status={turno.paymentStatus} />}
           </div>
         </div>
+      </button>
 
-        {/* Badges */}
-        <div className="flex shrink-0 flex-col items-end gap-1">
-          <StatusBadge status={turno.status} />
-          {!isCancelled && <PaymentBadge status={turno.paymentStatus} />}
+      {/* Cancelar turno — sutil, solo si no está ya cancelado */}
+      {!isCancelled && (
+        <div className="border-t border-border/60 px-3.5 py-1.5">
+          <button
+            type="button"
+            onClick={handleCancel}
+            className="text-[11px] text-text-secondary hover:text-[#E24B4A] transition-colors"
+          >
+            × Cancelar turno
+          </button>
         </div>
-      </div>
-    </button>
+      )}
+    </div>
   );
 }

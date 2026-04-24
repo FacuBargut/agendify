@@ -2,7 +2,10 @@ export type AppointmentStatus =
   | "pending"
   | "confirmed"
   | "cancelled"
-  | "completed";
+  | "completed"
+  | "pending_transfer"; // esperando verificación manual del profesional
+
+export type PaymentMethod = "mercadopago" | "transferencia";
 
 export type PaymentStatus = "unpaid" | "deposit_paid" | "paid";
 
@@ -14,9 +17,12 @@ export interface Appointment {
   durationMin: number;
   status: AppointmentStatus;
   paymentStatus: PaymentStatus;
+  paymentMethod?: PaymentMethod;
   depositAmount?: number;
   totalAmount?: number;
   notes?: string;
+  transferProofRef?: string;
+  transferExpiresAt?: Date;
 }
 
 // Serialized version for passing from server to client components
@@ -28,9 +34,12 @@ export interface SerializedAppointment {
   durationMin: number;
   status: AppointmentStatus;
   paymentStatus: PaymentStatus;
+  paymentMethod?: PaymentMethod | null;
   depositAmount?: number | null;
   totalAmount?: number | null;
   notes?: string | null;
+  transferProofRef?: string | null;
+  transferExpiresAt?: string | null; // ISO string
 }
 
 export interface Professional {
@@ -51,6 +60,9 @@ export interface ProfessionalPublic {
   sessionPrice: number;
   depositPercent: number;
   sessionDuration: number;
+  transferAlias?: string | null;
+  mpSurchargePercent?: number;
+  phone?: string | null;
 }
 
 export interface TimeSlot {

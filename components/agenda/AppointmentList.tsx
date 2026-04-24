@@ -8,11 +8,13 @@ import type { Appointment } from "@/lib/types";
 interface AppointmentListProps {
   appointments: Appointment[];
   selectedDate: Date;
+  highlightId?: string | null;
 }
 
 export default function AppointmentList({
   appointments,
   selectedDate,
+  highlightId,
 }: AppointmentListProps) {
   const filtered = useMemo(() => {
     return appointments
@@ -77,7 +79,11 @@ export default function AppointmentList({
       {/* List */}
       <div className="px-4">
         {filtered.map((appointment) => (
-          <TurnoCard key={appointment.id} appointment={appointment} />
+          <TurnoCard
+            key={appointment.id}
+            appointment={appointment}
+            isHighlighted={highlightId === appointment.id}
+          />
         ))}
       </div>
     </div>

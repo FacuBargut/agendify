@@ -53,6 +53,8 @@ export default async function PerfilPage() {
     depositPercent: professional.depositPercent,
     sessionDuration: professional.sessionDuration,
     plan: professional.plan,
+    transferAlias: professional.transferAlias,
+    mpSurchargePercent: professional.mpSurchargePercent,
     availability: availability.map((a) => ({
       dayOfWeek: a.dayOfWeek,
       startTime: a.startTime,

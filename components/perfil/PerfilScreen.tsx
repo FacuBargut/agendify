@@ -29,6 +29,8 @@ interface ProfessionalData {
   sessionDuration: number;
   plan: string;
   availability: AvailabilityData[];
+  transferAlias: string | null;
+  mpSurchargePercent: number;
 }
 
 const SPECIALTY_LABELS: Record<string, string> = {
@@ -106,6 +108,12 @@ export default function PerfilScreen({
 
       {/* Configuración de sesión */}
       <SesionConfig professional={initialData} onSaved={() => showToast("Configuración guardada")} />
+
+      {/* Métodos de cobro */}
+      <MetodosCobro
+        professional={initialData}
+        onSaved={() => showToast("Métodos de cobro guardados")}
+      />
 
       {/* Disponibilidad */}
       <DisponibilidadSection
@@ -496,6 +504,127 @@ function SesionConfig({
           </>
         ) : (
           "Guardar configuración"
+        )}
+      </button>
+    </section>
+  );
+}
+
+// ── Métodos de Cobro ───────────────────────────────────
+
+function MetodosCobro({
+  professional,
+  onSaved,
+}: {
+  professional: ProfessionalData;
+  onSaved: () => void;
+}) {
+  const [transferAlias, setTransferAlias] = useState(
+    professional.transferAlias || ""
+  );
+  const [mpSurchargePercent, setMpSurchargePercent] = useState(
+    professional.mpSurchargePercent ?? 0
+  );
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await fetch("/api/perfil", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transferAlias: transferAlias.trim() || null,
+          mpSurchargePercent,
+        }),
+      });
+      onSaved();
+    } catch {
+      // silent
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section className="border-t border-border px-4 pt-5 pb-2">
+      <h2 className="text-[15px] font-medium text-text-primary mb-1">
+        Métodos de cobro
+      </h2>
+      <p className="text-[12px] text-text-secondary mb-4">
+        Configurá cómo tus pacientes pueden abonar la seña al reservar.
+      </p>
+
+      {/* Transferencia bancaria */}
+      <div className="mb-5">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-[13px] font-medium text-text-primary">
+            Transferencia bancaria
+          </span>
+          <span className="rounded-full bg-success/10 px-2 py-0.5 text-[11px] font-medium text-success">
+            Recomendado
+          </span>
+        </div>
+        <label className="block text-[11px] text-text-secondary mb-1">
+          Alias / CBU / CVU
+        </label>
+        <input
+          type="text"
+          value={transferAlias}
+          onChange={(e) => setTransferAlias(e.target.value)}
+          placeholder="ej: nombre.apellido o 00000000000000000000"
+          className="w-full h-[48px] px-3 border border-border rounded-lg text-[14px] focus:border-primary focus:outline-none"
+        />
+        <p className="text-[11px] text-text-secondary mt-1">
+          El paciente verá este dato al reservar vía transferencia.
+          El turno queda en estado pendiente hasta que vos lo confirmés.
+        </p>
+      </div>
+
+      {/* Mercado Pago — recargo */}
+      <div className="mb-5">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-[13px] font-medium text-text-primary">
+            Mercado Pago
+          </span>
+        </div>
+        <label className="block text-[11px] text-text-secondary mb-1">
+          Recargo por uso de Mercado Pago
+        </label>
+        <div className="flex items-center gap-3 mb-2">
+          <input
+            type="range"
+            min={0}
+            max={15}
+            step={0.5}
+            value={mpSurchargePercent}
+            onChange={(e) => setMpSurchargePercent(Number(e.target.value))}
+            className="flex-1 h-2 rounded-full appearance-none cursor-pointer accent-primary"
+          />
+          <span className="shrink-0 text-[14px] font-medium text-text-primary w-12 text-right">
+            {mpSurchargePercent > 0 ? `+${mpSurchargePercent}%` : "Sin recargo"}
+          </span>
+        </div>
+        <p className="text-[11px] text-text-secondary">
+          {mpSurchargePercent > 0
+            ? `El paciente pagará un ${mpSurchargePercent}% adicional si elige Mercado Pago.`
+            : "No se aplicará ningún recargo adicional al pago con MP."}
+        </p>
+      </div>
+
+      <button
+        type="button"
+        onClick={handleSave}
+        disabled={saving}
+        className="w-full h-[48px] rounded-lg bg-primary text-white text-[14px] font-medium hover:bg-primary/90 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+      >
+        {saving ? (
+          <>
+            <Loader2 size={16} className="animate-spin" />
+            Guardando...
+          </>
+        ) : (
+          "Guardar métodos de cobro"
         )}
       </button>
     </section>

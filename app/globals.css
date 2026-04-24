@@ -70,6 +70,19 @@ textarea {
   padding: 12px;
 }
 
+/* Turno highlight flash — usado al navegar desde una notificación */
+@keyframes turno-flash {
+  0%   { box-shadow: 0 0 0 0   rgba(13, 110, 110, 0);   background-color: transparent; }
+  20%  { box-shadow: 0 0 0 4px rgba(13, 110, 110, 0.25); background-color: #E6F4F4; }
+  60%  { box-shadow: 0 0 0 4px rgba(13, 110, 110, 0.25); background-color: #E6F4F4; }
+  100% { box-shadow: 0 0 0 0   rgba(13, 110, 110, 0);   background-color: transparent; }
+}
+
+.turno-flash {
+  animation: turno-flash 0.9s ease-in-out 3;
+  border-radius: 10px;
+}
+
 /* Hide scrollbar */
 .scrollbar-hide {
   scrollbar-width: none;

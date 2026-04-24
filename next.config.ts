@@ -5,6 +5,15 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   devIndicators: false,
   turbopack: {},
+  async headers() {
+    return [
+      {
+        // Le indica a Vercel que no inyecte el toolbar en ninguna ruta
+        source: "/(.*)",
+        headers: [{ key: "x-vercel-skip-toolbar", value: "1" }],
+      },
+    ];
+  },
 };
 
 export default withPWA({

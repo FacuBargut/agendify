@@ -49,15 +49,11 @@ export default function PushPermissionBanner() {
     setLoading(true);
     setErrorMsg(null);
     try {
-      const ok = await subscribe();
-      if (ok) {
-        setDone(true);
-        setNeedsReconnect(false);
-      } else {
-        setErrorMsg("No se pudo activar. Verificá los permisos en Ajustes → Agendify.");
-      }
+      await subscribe();
+      setDone(true);
+      setNeedsReconnect(false);
     } catch (err) {
-      setErrorMsg(`Error: ${err instanceof Error ? err.message : String(err)}`);
+      setErrorMsg(err instanceof Error ? err.message : String(err));
     }
     setLoading(false);
   }

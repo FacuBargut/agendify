@@ -30,9 +30,17 @@ export default function PushProvider({ children }: { children: React.ReactNode }
   const { data: session, status } = useSession();
   const initialized = useRef(false);
 
-  const [permission, setPermission] = useState<NotificationPermission | "unsupported">(
-    typeof Notification === "undefined" ? "unsupported" : Notification.permission
-  );
+  // Empieza como "default" — se actualiza en el cliente al montar
+  const [permission, setPermission] = useState<NotificationPermission | "unsupported">("default");
+
+  useEffect(() => {
+    // Detectar soporte real en el cliente (no SSR)
+    if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+      setPermission("unsupported");
+      return;
+    }
+    setPermission(Notification.permission);
+  }, []);
 
   // Si ya tenía permiso concedido de antes, registrar suscripción sin pedir de nuevo
   useEffect(() => {

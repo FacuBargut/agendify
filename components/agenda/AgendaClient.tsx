@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import DateStrip from "@/components/agenda/DateStrip";
 import AppointmentList from "@/components/agenda/AppointmentList";
 import SetupCard from "@/components/agenda/SetupCard";
+import PushPermissionBanner from "@/components/agenda/PushPermissionBanner";
 import type { SerializedAppointment, Appointment, PaymentMethod } from "@/lib/types";
 import type { OnboardingSteps } from "@/components/agenda/SetupCard";
 
@@ -49,8 +50,9 @@ export default function AgendaClient({
     <div className="page-enter">
       <DateStrip onDateChange={handleDateChange} />
       <main className="flex-1 pb-safe">
-        {/* Setup card — solo visible si hay pasos pendientes o todo completo */}
+        {/* Banners de onboarding */}
         <div className="pt-3">
+          <PushPermissionBanner />
           <SetupCard steps={onboardingSteps} />
         </div>
         <AppointmentList

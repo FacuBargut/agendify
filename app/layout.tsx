@@ -71,9 +71,10 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col font-sans bg-background text-text-primary">
         <SessionProvider>
-          {children}
-          <PushProvider />
-          <InstallBanner />
+          <PushProvider>
+            {children}
+            <InstallBanner />
+          </PushProvider>
         </SessionProvider>
       </body>
     </html>

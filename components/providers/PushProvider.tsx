@@ -1,105 +1,115 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, createContext, useContext, useState } from "react";
 import { useSession } from "next-auth/react";
 
-const STORAGE_KEY = "agendify_push_endpoint";
+const ENDPOINT_KEY = "agendify_push_endpoint";
+
+interface PushContextValue {
+  permission: NotificationPermission | "unsupported";
+  subscribe: () => Promise<boolean>; // retorna true si se activó OK
+}
+
+const PushContext = createContext<PushContextValue>({
+  permission: "default",
+  subscribe: async () => false,
+});
+
+export function usePush() {
+  return useContext(PushContext);
+}
 
 /**
  * PushProvider
- * Se monta en el layout y gestiona silenciosamente el ciclo de vida
- * de las Web Push subscriptions para el profesional logueado:
- *   1. Espera a que el service worker esté listo
- *   2. Pide permiso de notificaciones (solo si el usuario lo acepta)
- *   3. Crea o recupera la subscripción push
- *   4. La envía al servidor para guardarla en DB
- *
- * No muestra ninguna UI propia — el prompt del SO aparece automáticamente.
+ * Gestiona el estado de permisos push.
+ * NO pide permisos automáticamente — eso lo hace el usuario desde
+ * un tap explícito (requerido por iOS/Safari).
+ * Sí re-registra la suscripción al cargar si ya había permiso concedido.
  */
-export default function PushProvider() {
+export default function PushProvider({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
-  const registered = useRef(false);
+  const initialized = useRef(false);
 
+  const [permission, setPermission] = useState<NotificationPermission | "unsupported">(
+    typeof Notification === "undefined" ? "unsupported" : Notification.permission
+  );
+
+  // Si ya tenía permiso concedido de antes, registrar suscripción sin pedir de nuevo
   useEffect(() => {
-    // Solo actuar si el profesional está logueado y no hemos registrado aún
-    if (status !== "authenticated" || registered.current) return;
+    if (status !== "authenticated" || initialized.current) return;
     if (!session?.user?.professionalId) return;
-
-    // Verificar soporte (iOS 16.4+ con PWA instalada, Android Chrome, etc.)
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
 
-    registered.current = true;
-    registerPush();
+    initialized.current = true;
+
+    if (Notification.permission === "granted") {
+      registerSubscription().catch(console.warn);
+    }
   }, [status, session]);
 
-  return null;
+  async function subscribe(): Promise<boolean> {
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return false;
+
+    try {
+      // Pedir permiso — DEBE llamarse desde un user gesture (tap)
+      const result = await Notification.requestPermission();
+      setPermission(result);
+
+      if (result !== "granted") return false;
+
+      await registerSubscription();
+      return true;
+    } catch (err) {
+      console.warn("[Push] Error al suscribir:", err);
+      return false;
+    }
+  }
+
+  return (
+    <PushContext.Provider value={{ permission, subscribe }}>
+      {children}
+    </PushContext.Provider>
+  );
 }
 
-async function registerPush() {
-  try {
-    // Esperar a que el SW esté activo
-    const registration = await navigator.serviceWorker.ready;
+async function registerSubscription(): Promise<void> {
+  const registration = await navigator.serviceWorker.ready;
 
-    // Si ya tenemos permiso concedido, suscribir directamente
-    // Si está 'default' (sin decidir), pedirlo
-    // Si está 'denied', no hacer nada
-    let permission = Notification.permission;
+  let sub = await registration.pushManager.getSubscription();
 
-    if (permission === "denied") return;
-
-    if (permission === "default") {
-      permission = await Notification.requestPermission();
-    }
-
-    if (permission !== "granted") return;
-
-    // Verificar si ya existe una subscripción activa
-    let subscription = await registration.pushManager.getSubscription();
-
-    if (!subscription) {
-      // Crear nueva subscripción con nuestras claves VAPID públicas
-      const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
-      subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidKey),
-      });
-    }
-
-    // Guardar endpoint en localStorage para detectar cambios
-    const endpointKey = STORAGE_KEY;
-    const storedEndpoint = localStorage.getItem(endpointKey);
-
-    if (storedEndpoint === subscription.endpoint) return; // ya enviado
-
-    // Enviar al servidor
-    const { endpoint, keys } = subscription.toJSON() as {
-      endpoint: string;
-      keys: { p256dh: string; auth: string };
-    };
-
-    const res = await fetch("/api/push/subscribe", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ endpoint, keys }),
+  if (!sub) {
+    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!;
+    sub = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToArrayBuffer(vapidKey),
     });
+  }
 
-    if (res.ok) {
-      localStorage.setItem(endpointKey, endpoint);
-    }
-  } catch (err) {
-    // No interrumpir la app si algo falla
-    console.warn("[PushProvider] Error al registrar push:", err);
+  // Evitar re-enviar si es la misma suscripción
+  const stored = localStorage.getItem(ENDPOINT_KEY);
+  if (stored === sub.endpoint) return;
+
+  const { endpoint, keys } = sub.toJSON() as {
+    endpoint: string;
+    keys: { p256dh: string; auth: string };
+  };
+
+  const res = await fetch("/api/push/subscribe", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ endpoint, keys }),
+  });
+
+  if (res.ok) {
+    localStorage.setItem(ENDPOINT_KEY, endpoint);
   }
 }
 
-/** Convierte la clave VAPID pública de base64url a ArrayBuffer */
-function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = atob(base64);
-  const arr = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; i++) {
-    arr[i] = rawData.charCodeAt(i);
-  }
+function urlBase64ToArrayBuffer(base64: string): ArrayBuffer {
+  const padding = "=".repeat((4 - (base64.length % 4)) % 4);
+  const b64 = (base64 + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(b64);
+  const arr = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
   return arr.buffer as ArrayBuffer;
 }

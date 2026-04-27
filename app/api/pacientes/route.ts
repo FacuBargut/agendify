@@ -40,6 +40,22 @@ export async function POST(request: Request) {
     );
   }
 
+  // Verificar duplicado antes de crear
+  const existing = await db.patient.findFirst({
+    where: {
+      professionalId: session.user.professionalId,
+      phone,
+    },
+    select: { id: true, name: true },
+  });
+
+  if (existing) {
+    return NextResponse.json(
+      { error: `Ya existe un paciente con ese teléfono (${existing.name})` },
+      { status: 409 }
+    );
+  }
+
   const patient = await db.patient.create({
     data: {
       professionalId: session.user.professionalId,

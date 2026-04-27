@@ -25,10 +25,11 @@ model Professional {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  availability  Availability[]
-  appointments  Appointment[]
-  patients      Patient[]
-  notifications Notification[]
+  availability      Availability[]
+  appointments      Appointment[]
+  patients          Patient[]
+  notifications     Notification[]
+  pushSubscriptions PushSubscription[]
 }
 
 model Patient {
@@ -85,6 +86,17 @@ model Notification {
   body           String
   read           Boolean  @default(false)
   appointmentId  String?  // referencia opcional al turno
+  createdAt      DateTime @default(now())
+
+  professional Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+}
+
+model PushSubscription {
+  id             String   @id @default(cuid())
+  professionalId String
+  endpoint       String   @unique
+  p256dh         String
+  auth           String
   createdAt      DateTime @default(now())
 
   professional Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)

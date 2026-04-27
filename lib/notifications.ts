@@ -23,10 +23,6 @@ function capitalizeFecha(date: Date): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-/**
- * Genera título y cuerpo según el tipo de notificación.
- * Textos pensados para ser claros, concisos y accionables.
- */
 function buildContent(
   type: NotificationType,
   patientName: string,
@@ -69,7 +65,8 @@ function buildContent(
 }
 
 /**
- * Crea una notificación en la base de datos.
+ * Crea una notificación en DB y además envía una Web Push notification
+ * al dispositivo del profesional (si tiene permisos y está suscripto).
  * Fire-and-forget — nunca lanza, solo loguea errores.
  */
 export async function createNotification(
@@ -84,6 +81,7 @@ export async function createNotification(
       params.depositAmount
     );
 
+    // 1. Guardar en DB (in-app notification)
     await db.notification.create({
       data: {
         professionalId: params.professionalId,
@@ -93,6 +91,21 @@ export async function createNotification(
         appointmentId: params.appointmentId ?? null,
       },
     });
+
+    // 2. Enviar Web Push (nativa al dispositivo)
+    // Import dinámico para evitar que web-push rompa el bundle del cliente
+    const url = params.appointmentId
+      ? `/agenda?highlight=${params.appointmentId}`
+      : "/agenda";
+
+    try {
+      const { sendPushToUser } = await import("@/lib/webpush");
+      await sendPushToUser(params.professionalId, { title, body, url });
+    } catch (pushErr) {
+      // Si web-push falla (ej: no está instalado aún), la notificación in-app
+      // ya se guardó — no bloqueamos nada.
+      console.warn("[Push] No se pudo enviar push nativo:", pushErr);
+    }
 
     console.log(`[Notification] Creada: ${params.type} → ${params.professionalId}`);
   } catch (error) {

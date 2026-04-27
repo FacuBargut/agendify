@@ -65,7 +65,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { patientId, patientName, patientPhone, date, time, notes, sendWhatsApp } = body;
+  const { patientId, patientName, patientPhone, date, time, notes, sendWhatsApp, saveAsPatient } = body;
 
   if (!patientName || !patientPhone || !date || !time) {
     return NextResponse.json(
@@ -105,8 +105,11 @@ export async function POST(request: Request) {
   // Find or create patient
   let patient = null;
   if (patientId) {
+    // Turno para paciente existente del listado
     patient = await db.patient.findUnique({ where: { id: patientId } });
-  } else {
+  } else if (saveAsPatient !== false) {
+    // Paciente nuevo que el profesional quiere guardar en su listado
+    // Usamos upsert por si ya existe uno con ese teléfono
     patient = await db.patient.upsert({
       where: {
         professionalId_phone: {
@@ -122,6 +125,8 @@ export async function POST(request: Request) {
       },
     });
   }
+  // Si saveAsPatient === false: patient queda null, el turno guarda
+  // patientName/patientPhone directamente sin crear registro en Patient
 
   const appointment = await db.appointment.create({
     data: {

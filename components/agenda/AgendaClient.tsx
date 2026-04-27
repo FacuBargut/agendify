@@ -5,18 +5,22 @@ import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import DateStrip from "@/components/agenda/DateStrip";
 import AppointmentList from "@/components/agenda/AppointmentList";
+import SetupCard from "@/components/agenda/SetupCard";
 import type { SerializedAppointment, Appointment, PaymentMethod } from "@/lib/types";
+import type { OnboardingSteps } from "@/components/agenda/SetupCard";
 
 interface AgendaClientProps {
   appointments: SerializedAppointment[];
   initialDate: string;
   highlightId: string | null;
+  onboardingSteps: OnboardingSteps;
 }
 
 export default function AgendaClient({
   appointments,
   initialDate,
   highlightId,
+  onboardingSteps,
 }: AgendaClientProps) {
   const router = useRouter();
   const selectedDate = new Date(initialDate);
@@ -37,21 +41,24 @@ export default function AgendaClient({
   );
 
   function handleDateChange(date: Date) {
-    // Al cambiar de día desde el DateStrip limpiamos el highlight
     const dateStr = format(date, "yyyy-MM-dd");
     router.push(`/agenda?date=${dateStr}`);
   }
 
   return (
-    <>
+    <div className="page-enter">
       <DateStrip onDateChange={handleDateChange} />
-      <main className="flex-1 pb-[72px]">
+      <main className="flex-1 pb-safe">
+        {/* Setup card — solo visible si hay pasos pendientes o todo completo */}
+        <div className="pt-3">
+          <SetupCard steps={onboardingSteps} />
+        </div>
         <AppointmentList
           appointments={parsed}
           selectedDate={selectedDate}
           highlightId={highlightId}
         />
       </main>
-    </>
+    </div>
   );
 }

@@ -79,7 +79,7 @@ export default function PacientesList({ patients: initialPatients }: PacientesLi
   };
 
   return (
-    <main className="flex-1 pb-[72px]">
+    <main className="flex-1 pb-safe page-enter">
       <div className="px-4 pt-4 pb-2">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import SessionProvider from "@/components/providers/SessionProvider";
+import PushProvider from "@/components/providers/PushProvider";
 import { InstallBanner } from "@/components/ui/InstallBanner";
 import "./globals.css";
 
@@ -42,6 +43,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -70,6 +72,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col font-sans bg-background text-text-primary">
         <SessionProvider>
           {children}
+          <PushProvider />
           <InstallBanner />
         </SessionProvider>
       </body>

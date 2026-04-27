@@ -139,7 +139,7 @@ export default function PacienteDetalle({ patient }: { patient: PatientData }) {
   const statusConfig = PATIENT_STATUS_CONFIG[status];
 
   return (
-    <main className="flex-1 pb-[72px]">
+    <main className="flex-1 pb-safe page-enter">
       {/* Back button */}
       <div className="px-4 pt-4">
         <button

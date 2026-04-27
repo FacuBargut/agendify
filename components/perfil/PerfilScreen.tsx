@@ -99,7 +99,7 @@ export default function PerfilScreen({
   }, []);
 
   return (
-    <main className="flex-1 pb-[72px]">
+    <main className="flex-1 pb-safe page-enter">
       {/* Header section */}
       <ProfileHeader professional={initialData} onCopy={() => showToast("Link copiado")} />
 

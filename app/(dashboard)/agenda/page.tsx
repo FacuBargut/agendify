@@ -5,6 +5,7 @@ import { startOfDay, endOfDay } from "date-fns";
 import Header from "@/components/layout/Header";
 import BottomNav from "@/components/layout/BottomNav";
 import AgendaClient from "@/components/agenda/AgendaClient";
+import SetupCard from "@/components/agenda/SetupCard";
 import type { SerializedAppointment } from "@/lib/types";
 
 export default async function AgendaPage({
@@ -35,6 +36,25 @@ export default async function AgendaPage({
       date = targetAppointment.date;
     }
   }
+
+  // Datos del profesional para onboarding
+  const professional = await db.professional.findUnique({
+    where: { id: session.user.professionalId },
+    select: {
+      phone: true,
+      transferAlias: true,
+      slug: true,
+      availability: { where: { active: true }, take: 1 },
+    },
+  });
+
+  const onboardingSteps = {
+    profileDone: !!professional?.phone,
+    availabilityDone: (professional?.availability?.length ?? 0) > 0,
+    cobroDone: !!professional?.transferAlias,
+    slug: professional?.slug ?? session.user.slug,
+    appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "https://agendify-blue.vercel.app",
+  };
 
   const appointments = await db.appointment.findMany({
     where: {
@@ -73,6 +93,7 @@ export default async function AgendaPage({
         appointments={serialized}
         initialDate={date.toISOString()}
         highlightId={highlight ?? null}
+        onboardingSteps={onboardingSteps}
       />
       <BottomNav />
     </>

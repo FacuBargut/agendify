@@ -7,7 +7,7 @@ interface PageWrapperProps {
 export default function PageWrapper({ children }: PageWrapperProps) {
   return (
     <>
-      <main className="flex-1 pb-[72px]">{children}</main>
+      <main className="flex-1 pb-safe">{children}</main>
       <BottomNav />
     </>
   );

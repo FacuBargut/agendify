@@ -33,6 +33,9 @@ export default function NuevoTurnoModal({
   const [patientName, setPatientName] = useState("");
   const [patientPhone, setPatientPhone] = useState("");
 
+  // Para paciente nuevo: ¿guardar en el listado?
+  const [saveAsPatient, setSaveAsPatient] = useState(true);
+
   // Appointment fields
   const [date, setDate] = useState("");
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -78,6 +81,7 @@ export default function NuevoTurnoModal({
     setSelectedPatient(null);
     setPatientName("");
     setPatientPhone("");
+    setSaveAsPatient(true);
     setDate("");
     setSelectedTime(null);
     setNotes("");
@@ -119,6 +123,8 @@ export default function NuevoTurnoModal({
           time: selectedTime,
           notes: notes.trim() || null,
           sendWhatsApp,
+          // Solo relevante cuando es paciente nuevo (no del listado)
+          saveAsPatient: selectedPatient ? true : saveAsPatient,
         }),
       });
 
@@ -320,6 +326,45 @@ export default function NuevoTurnoModal({
                         required
                       />
                     </div>
+
+                    {/* Toggle: guardar como paciente */}
+                    <button
+                      type="button"
+                      onClick={() => setSaveAsPatient(!saveAsPatient)}
+                      className={cn(
+                        "w-full flex items-center justify-between rounded-lg border px-3.5 py-3 transition-colors",
+                        saveAsPatient
+                          ? "border-primary/40 bg-primary-light"
+                          : "border-border bg-surface"
+                      )}
+                    >
+                      <div className="text-left">
+                        <p className={cn(
+                          "text-[13px] font-medium",
+                          saveAsPatient ? "text-primary" : "text-text-primary"
+                        )}>
+                          Guardar en mi listado de pacientes
+                        </p>
+                        <p className="text-[11px] text-text-secondary mt-0.5">
+                          {saveAsPatient
+                            ? "Se agregará a Pacientes para futuros turnos"
+                            : "Turno esporádico, sin registrar en el listado"}
+                        </p>
+                      </div>
+                      {/* Checkmark visual */}
+                      <span className={cn(
+                        "ml-3 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+                        saveAsPatient
+                          ? "border-primary bg-primary"
+                          : "border-border bg-background"
+                      )}>
+                        {saveAsPatient && (
+                          <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                            <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
+                      </span>
+                    </button>
                   </div>
                 )}
               </div>

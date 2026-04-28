@@ -50,8 +50,11 @@ label {
   outline-offset: 2px;
 }
 
-/* Input base */
-input, select, textarea {
+/* Input base — usamos :where() para que la especificidad sea 0 y cualquier
+   utility de Tailwind (pl-10, h-[44px], etc.) pueda sobrescribir.
+   Sin esto, los iconos absolute dentro de inputs se monta sobre el texto
+   porque el padding global pisa al pl-N. */
+:where(input, select, textarea) {
   height: 48px;
   border-radius: 8px;
   border: 1px solid var(--color-border);
@@ -60,12 +63,12 @@ input, select, textarea {
   transition: border-color 0.15s ease;
 }
 
-input:focus, select:focus, textarea:focus {
+:where(input:focus, select:focus, textarea:focus) {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
-textarea {
+:where(textarea) {
   height: auto;
   padding: 12px;
 }

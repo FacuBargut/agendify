@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { CalendarDays, Users, Clock, UserCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
@@ -21,7 +22,6 @@ const navItems: NavItem[] = [
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const router = useRouter();
   // optimistic: muestra el tab activo antes de que Next.js actualice pathname
   const [pending, setPending] = useState<string | null>(null);
   // para el micro-rebote al tocar
@@ -34,12 +34,14 @@ export default function BottomNav() {
 
   const activeHref = pending ?? pathname;
 
-  function handleNav(href: string) {
-    if (activeHref.startsWith(href)) return; // ya estamos ahí
+  function handleTap(href: string, e: React.MouseEvent) {
+    if (activeHref.startsWith(href)) {
+      e.preventDefault(); // ya estamos en esta ruta — evitar nav redundante
+      return;
+    }
     setPending(href);
     setTapped(href);
     setTimeout(() => setTapped(null), 200);
-    router.push(href);
   }
 
   return (
@@ -55,9 +57,13 @@ export default function BottomNav() {
 
           return (
             <li key={item.href} className="flex-1">
-              <button
-                type="button"
-                onClick={() => handleNav(item.href)}
+              {/* Link con prefetch en background — navegacion instantanea
+                  cuando ya esta el RSC payload en cache. router.push no
+                  prefetcha, por eso el bottom nav se sentia lento. */}
+              <Link
+                href={item.href}
+                prefetch
+                onClick={(e) => handleTap(item.href, e)}
                 className={cn(
                   "relative flex flex-col items-center justify-center h-full w-full gap-0.5 transition-colors",
                   isActive ? "text-primary" : "text-text-secondary"
@@ -80,7 +86,7 @@ export default function BottomNav() {
                 <span className="text-[10px] font-medium leading-tight">
                   {item.label}
                 </span>
-              </button>
+              </Link>
             </li>
           );
         })}

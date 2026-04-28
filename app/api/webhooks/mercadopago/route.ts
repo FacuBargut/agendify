@@ -107,8 +107,10 @@ export async function POST(request: Request) {
 
       console.log("[MP Webhook] Turno creado en DB:", appointment.id);
 
-      // 4. Notificación in-app al profesional
-      createNotification({
+      // 4. Notificación in-app + Web Push al profesional
+      // OJO: hay que awaitar — en Vercel serverless, sin await el runtime
+      // mata el proceso al devolver la respuesta y la push no se llega a enviar.
+      await createNotification({
         professionalId: professional.id,
         type: "new_mp_payment",
         appointmentId: appointment.id,

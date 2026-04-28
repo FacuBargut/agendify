@@ -61,7 +61,7 @@ export async function PATCH(
 
     console.log(`[Verificar] Turno ${id} CONFIRMADO por ${professional.name}`);
 
-    createNotification({
+    await createNotification({
       professionalId: professional.id,
       type: "transfer_confirmed",
       appointmentId: id,
@@ -98,7 +98,7 @@ export async function PATCH(
 
   console.log(`[Verificar] Turno ${id} RECHAZADO por ${professional.name}`);
 
-  createNotification({
+  await createNotification({
     professionalId: professional.id,
     type: "transfer_rejected",
     appointmentId: id,

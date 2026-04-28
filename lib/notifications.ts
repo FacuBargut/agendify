@@ -6,7 +6,8 @@ type NotificationType =
   | "new_transfer"
   | "new_mp_payment"
   | "transfer_confirmed"
-  | "transfer_rejected";
+  | "transfer_rejected"
+  | "transfer_expired";
 
 interface CreateNotificationParams {
   professionalId: string;
@@ -60,6 +61,12 @@ function buildContent(
       return {
         title: "Transferencia rechazada",
         body: `Rechazaste el turno de ${patientName} del ${fecha} a las ${time} hs. El slot quedó libre y el paciente fue notificado.`,
+      };
+
+    case "transfer_expired":
+      return {
+        title: "Transferencia vencida",
+        body: `${patientName} no completó la transferencia para el turno del ${fecha} a las ${time} hs (${monto}). El slot quedó libre.`,
       };
   }
 }

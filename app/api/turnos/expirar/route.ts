@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sendWhatsApp, WA_MESSAGES } from "@/lib/twilio";
+import { createNotification } from "@/lib/notifications";
 
 /**
  * GET /api/turnos/expirar
@@ -43,6 +44,17 @@ export async function GET() {
       });
 
       await sendWhatsApp(appointment.patientPhone, msg);
+
+      // Avisar al profesional con push + notificacion in-app
+      await createNotification({
+        professionalId: appointment.professionalId,
+        type: "transfer_expired",
+        appointmentId: appointment.id,
+        patientName: appointment.patientName,
+        date: appointment.date,
+        time: appointment.date.toTimeString().slice(0, 5),
+        depositAmount: appointment.depositAmount ?? 0,
+      });
 
       console.log(`[Expirar] Turno ${appointment.id} liberado — ${appointment.patientName}`);
       liberados++;

@@ -133,8 +133,9 @@ export async function POST(request: Request) {
 
     console.log(`[Transferencia] Turno creado: ${appointment.id} — expira ${transferExpiresAt.toISOString()}`);
 
-    // ── Notificación in-app al profesional ────────────────────
-    createNotification({
+    // ── Notificación in-app + Web Push al profesional ─────────
+    // await obligatorio — en Vercel serverless, sin await la push se cancela.
+    await createNotification({
       professionalId: professional.id,
       type: "new_transfer",
       appointmentId: appointment.id,

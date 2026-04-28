@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 
 interface Notification {
   id: string;
-  type: "new_transfer" | "new_mp_payment" | "transfer_confirmed" | "transfer_rejected";
+  type: "new_transfer" | "new_mp_payment" | "transfer_confirmed" | "transfer_rejected" | "transfer_expired";
   title: string;
   body: string;
   read: boolean;
@@ -46,6 +46,11 @@ const TYPE_CONFIG: Record<
     iconColor: "text-success",
   },
   transfer_rejected: {
+    icon: XCircle,
+    iconBg: "bg-[#FEF0EF]",
+    iconColor: "text-[#E24B4A]",
+  },
+  transfer_expired: {
     icon: XCircle,
     iconBg: "bg-[#FEF0EF]",
     iconColor: "text-[#E24B4A]",

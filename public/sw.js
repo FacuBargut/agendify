@@ -10,7 +10,7 @@
 // confiabilidad sobre offline support por ahora. Si en el futuro queremos
 // caching, agregar un fetch handler explícito acá.
 
-const SW_VERSION = "agendify-sw-v1";
+const SW_VERSION = "agendify-sw-v2";
 
 self.addEventListener("install", (event) => {
   // Activar de inmediato sin esperar a que se cierren las pestañas viejas.
@@ -37,27 +37,52 @@ self.addEventListener("activate", (event) => {
 // ─── Web Push ────────────────────────────────────────────────────────────────
 
 self.addEventListener("push", (event) => {
-  if (!event.data) return;
+  // CRITICO en iOS: cada push recibido DEBE resultar en una notificacion
+  // visible (contrato userVisibleOnly:true). Si el SW termina sin llamar
+  // showNotification, iOS lo cuenta como "silent push" y puede revocar
+  // permisos o dejar de entregar pushes futuras. Por eso siempre mostramos
+  // algo, aunque el payload este corrupto o vacio.
 
-  let payload;
-  try {
-    payload = event.data.json();
-  } catch {
-    payload = { title: "Agendify", body: event.data.text(), url: "/agenda" };
+  let payload = { title: "Agendify", body: "Tenés una novedad", url: "/agenda" };
+
+  if (event.data) {
+    try {
+      const parsed = event.data.json();
+      payload = {
+        title: parsed.title || payload.title,
+        body: parsed.body || payload.body,
+        url: parsed.url || payload.url,
+        icon: parsed.icon,
+      };
+    } catch {
+      try {
+        payload.body = event.data.text() || payload.body;
+      } catch {
+        // dejamos los defaults
+      }
+    }
   }
 
   const options = {
     body: payload.body,
     icon: payload.icon || "/icons/icon-192x192.png",
     badge: "/icons/icon-96x96.png",
-    data: { url: payload.url || "/agenda" },
+    data: { url: payload.url },
     vibrate: [200, 100, 200],
     requireInteraction: false,
     silent: false,
   };
 
   event.waitUntil(
-    self.registration.showNotification(payload.title, options)
+    self.registration
+      .showNotification(payload.title, options)
+      .catch((err) => {
+        console.error("[sw] showNotification failed:", err);
+        // Ultimo recurso para no violar el contrato userVisibleOnly
+        return self.registration.showNotification("Agendify", {
+          body: "Tenés una novedad",
+        });
+      })
   );
 });
 

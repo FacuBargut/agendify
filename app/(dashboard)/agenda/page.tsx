@@ -53,7 +53,7 @@ export default async function AgendaPage({
     availabilityDone: (professional?.availability?.length ?? 0) > 0,
     cobroDone: !!professional?.transferAlias,
     slug: professional?.slug ?? session.user.slug,
-    appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "https://agendify-blue.vercel.app",
+    appUrl: process.env.NEXT_PUBLIC_APP_URL ?? "https://www.agendify.com.ar",
   };
 
   const appointments = await db.appointment.findMany({

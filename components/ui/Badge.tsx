@@ -10,6 +10,7 @@ const STATUS_CONFIG: Record<
   pending: { label: "Pendiente", bg: "bg-[#FEF9EE]", text: "text-warning" },
   cancelled: { label: "Cancelado", bg: "bg-[#FEF0EF]", text: "text-[#E24B4A]" },
   completed: { label: "Completado", bg: "bg-[#F0FDF4]", text: "text-success" },
+  no_show: { label: "No asistió", bg: "bg-[#FEF0EF]", text: "text-[#E24B4A]" },
   pending_transfer: { label: "Verificar pago", bg: "bg-[#FEF9EE]", text: "text-warning" },
 };
 

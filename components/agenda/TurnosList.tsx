@@ -19,6 +19,7 @@ import { StatusBadge, PaymentBadge } from "@/components/ui/Badge";
 import TurnoDetailModal from "./TurnoDetailModal";
 import NuevoTurnoModal from "./NuevoTurnoModal";
 import type { AppointmentStatus, PaymentStatus } from "@/lib/types";
+import { canCancel, incomeForAppointment } from "@/lib/appointmentStatus";
 
 export interface TurnoSerialized {
   id: string;
@@ -139,14 +140,28 @@ export default function TurnosList({
       (a) => a.status === "pending"
     ).length;
 
+    // Ingresos del mes: para turnos COMPLETADOS o EN REVISION (asistencia
+    // todavia no marcada, optimista), se cuenta el total. Para NO_SHOW se
+    // cuenta solo la sena (lo unico cobrado). Resto = 0.
     const monthIncome = appointments
       .filter((a) => {
         const d = new Date(a.date);
-        return (
-          d >= monthStart && d <= monthEnd && a.paymentStatus === "paid"
-        );
+        return d >= monthStart && d <= monthEnd;
       })
-      .reduce((sum, a) => sum + (a.totalAmount || 0), 0);
+      .reduce((sum, a) => {
+        const enriched = {
+          date: new Date(a.date),
+          durationMin: a.durationMin,
+          status: a.status,
+          totalAmount: a.totalAmount ?? 0,
+          depositAmount: a.depositAmount ?? 0,
+          patientName: a.patientName,
+          patientPhone: a.patientPhone,
+          paymentStatus: a.paymentStatus,
+          id: a.id,
+        };
+        return sum + incomeForAppointment(enriched, now);
+      }, 0);
 
     return { todayCount, weekCount, pendingCount, monthIncome };
   }, [appointments]);
@@ -320,6 +335,11 @@ function TurnoCompactCard({
   const date = new Date(turno.date);
   const time = format(date, "HH:mm");
   const isCancelled = turno.status === "cancelled";
+  const showCancelButton = canCancel({
+    date,
+    durationMin: turno.durationMin,
+    status: turno.status,
+  });
 
   function handleCancel(e: React.MouseEvent) {
     e.stopPropagation();
@@ -383,8 +403,8 @@ function TurnoCompactCard({
         </div>
       </button>
 
-      {/* Cancelar turno — sutil, solo si no está ya cancelado */}
-      {!isCancelled && (
+      {/* Cancelar turno — solo si todavia no paso y no esta terminado */}
+      {showCancelButton && (
         <div className="border-t border-border/60 px-3.5 py-1.5">
           <button
             type="button"

@@ -64,10 +64,43 @@ export async function GET() {
     }
   }
 
+  // ── Auto-completar turnos confirmados pasados >48hs sin asistencia marcada ──
+  // El estado efectivo en UI ya los muestra como "completed" via getEffectiveStatus,
+  // pero migrar el DB mantiene reports y metricas historicas consistentes sin
+  // tener que recalcular cada vez.
+  const REVIEW_WINDOW_MS = 48 * 60 * 60 * 1000;
+  const cutoff = new Date(now.getTime() - REVIEW_WINDOW_MS);
+
+  // Buscamos confirmed que ya pasaron hace mas de 48hs. Como Prisma no puede
+  // calcular date+durationMin en SQL facilmente, hacemos query amplia y
+  // filtramos en JS — la cantidad por dia es chica.
+  const confirmedPast = await db.appointment.findMany({
+    where: {
+      status: "confirmed",
+      date: { lte: cutoff },
+    },
+    select: { id: true, date: true, durationMin: true },
+  });
+
+  const toComplete = confirmedPast.filter(
+    (a) => a.date.getTime() + a.durationMin * 60 * 1000 < cutoff.getTime()
+  );
+
+  let completados = 0;
+  if (toComplete.length > 0) {
+    await db.appointment.updateMany({
+      where: { id: { in: toComplete.map((a) => a.id) } },
+      data: { status: "completed" },
+    });
+    completados = toComplete.length;
+    console.log(`[Expirar] Turnos auto-completados: ${completados}`);
+  }
+
   return NextResponse.json({
     timestamp: now.toISOString(),
     encontrados: vencidos.length,
     liberados,
     errores,
+    completados,
   });
 }

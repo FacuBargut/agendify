@@ -12,6 +12,7 @@ const BORDER_COLOR: Record<AppointmentStatus, string> = {
   pending: "border-l-warning",
   cancelled: "border-l-border",
   completed: "border-l-success",
+  no_show: "border-l-[#E24B4A]",
   pending_transfer: "border-l-warning",
 };
 

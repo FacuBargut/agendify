@@ -91,6 +91,24 @@ export default async function AgendaPage({
     orderBy: { date: "asc" },
   });
 
+  // Turnos confirmados que ya pasaron pero estan dentro de la ventana de
+  // revision (48hs). El profesional necesita marcar si el paciente asistio
+  // o no para que el calculo de ingresos sea correcto.
+  const REVIEW_WINDOW_MS = 48 * 60 * 60 * 1000;
+  const reviewCutoff = new Date(now.getTime() - REVIEW_WINDOW_MS);
+  const recentConfirmed = await db.appointment.findMany({
+    where: {
+      professionalId: session.user.professionalId,
+      status: "confirmed",
+      date: { gte: reviewCutoff, lte: now },
+    },
+    orderBy: { date: "desc" },
+  });
+  // Filtrar a los que ya pasaron (date + duration < now)
+  const awaitingReview = recentConfirmed.filter(
+    (a) => a.date.getTime() + a.durationMin * 60 * 1000 < now.getTime()
+  );
+
   function serialize(a: (typeof appointments)[number]): SerializedAppointment {
     return {
       id: a.id,
@@ -111,6 +129,7 @@ export default async function AgendaPage({
 
   const serialized = appointments.map(serialize);
   const pendingSerialized = pendingTransfers.map(serialize);
+  const awaitingReviewSerialized = awaitingReview.map(serialize);
 
   // Pasar la fecha como YYYY-MM-DD (no como ISO UTC) — el cliente la parsea
   // como medianoche local. Sin esto, en TZ negativos (AR = UTC-3) "abril 29
@@ -124,6 +143,7 @@ export default async function AgendaPage({
       <AgendaClient
         appointments={serialized}
         pendingTransfers={pendingSerialized}
+        awaitingReview={awaitingReviewSerialized}
         initialDateStr={initialDateStr}
         highlightId={highlight ?? null}
         onboardingSteps={onboardingSteps}

@@ -3,7 +3,8 @@ export type AppointmentStatus =
   | "confirmed"
   | "cancelled"
   | "completed"
-  | "pending_transfer"; // esperando verificación manual del profesional
+  | "no_show"            // paciente no asistio (profesional lo marco)
+  | "pending_transfer";  // esperando verificación manual del profesional
 
 export type PaymentMethod = "mercadopago" | "transferencia";
 

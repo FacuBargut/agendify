@@ -4,6 +4,7 @@ import { CalendarX2 } from "lucide-react";
 import { formatPeso } from "@/lib/utils";
 import TurnoCard from "@/components/agenda/TurnoCard";
 import type { Appointment } from "@/lib/types";
+import { incomeForAppointment } from "@/lib/appointmentStatus";
 
 interface AppointmentListProps {
   appointments: Appointment[];
@@ -23,13 +24,17 @@ export default function AppointmentList({
   }, [appointments, selectedDate]);
 
   const stats = useMemo(() => {
+    const now = new Date();
     const active = filtered.filter((a) => a.status !== "cancelled");
     const confirmed = filtered.filter(
       (a) => a.status === "confirmed" || a.status === "completed"
     );
-    const collected = filtered
-      .filter((a) => a.paymentStatus === "paid" && a.totalAmount)
-      .reduce((sum, a) => sum + (a.totalAmount ?? 0), 0);
+    // Cobrado del dia: turnos completados (o pendientes de revision pasados =
+    // optimista) suman total. No-show suma solo la sena.
+    const collected = filtered.reduce(
+      (sum, a) => sum + incomeForAppointment(a, now),
+      0
+    );
 
     return {
       total: active.length,

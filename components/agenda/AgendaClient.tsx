@@ -8,12 +8,14 @@ import AppointmentList from "@/components/agenda/AppointmentList";
 import SetupCard from "@/components/agenda/SetupCard";
 import PushPermissionBanner from "@/components/agenda/PushPermissionBanner";
 import PendingTransfersBanner from "@/components/agenda/PendingTransfersBanner";
+import AwaitingReviewBanner from "@/components/agenda/AwaitingReviewBanner";
 import type { SerializedAppointment, Appointment, PaymentMethod } from "@/lib/types";
 import type { OnboardingSteps } from "@/components/agenda/SetupCard";
 
 interface AgendaClientProps {
   appointments: SerializedAppointment[];
   pendingTransfers: SerializedAppointment[];
+  awaitingReview: SerializedAppointment[];
   initialDateStr: string; // "YYYY-MM-DD" — parseado como medianoche local
   highlightId: string | null;
   onboardingSteps: OnboardingSteps;
@@ -22,6 +24,7 @@ interface AgendaClientProps {
 export default function AgendaClient({
   appointments,
   pendingTransfers,
+  awaitingReview,
   initialDateStr,
   highlightId,
   onboardingSteps,
@@ -83,6 +86,7 @@ export default function AgendaClient({
         {/* Banners */}
         <div className="pt-3">
           <PushPermissionBanner />
+          <AwaitingReviewBanner pending={awaitingReview} />
           <PendingTransfersBanner pending={pendingTransfers} />
           <SetupCard steps={onboardingSteps} />
         </div>

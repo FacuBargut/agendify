@@ -3,11 +3,12 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X, Phone, User, Loader2 } from "lucide-react";
+import { X, Phone, User, Loader2, Check, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/utils";
 import type { AppointmentStatus, PaymentStatus } from "@/lib/types";
 import type { TurnoSerialized } from "./TurnosList";
+import { isPastSession, canCancel } from "@/lib/appointmentStatus";
 
 interface TurnoDetailModalProps {
   turno: TurnoSerialized;
@@ -20,6 +21,7 @@ const STATUSES: { key: AppointmentStatus; label: string }[] = [
   { key: "pending", label: "Pendiente" },
   { key: "confirmed", label: "Confirmado" },
   { key: "completed", label: "Completado" },
+  { key: "no_show", label: "No asistió" },
 ];
 
 const PAYMENT_STATUSES: { key: PaymentStatus; label: string }[] = [
@@ -92,6 +94,31 @@ export default function TurnoDetailModal({
   }
 
   const date = new Date(turno.date);
+  const turnoForCheck = {
+    date,
+    durationMin: turno.durationMin,
+    status: turno.status,
+  };
+  const isPast = isPastSession(turnoForCheck);
+  const cancellable = canCancel(turnoForCheck);
+  const showAttendanceButtons =
+    isPast && turno.status !== "completed" && turno.status !== "no_show" && turno.status !== "cancelled";
+
+  async function markAttendance(attendance: "attended" | "no_show") {
+    setSaving(true);
+    try {
+      await fetch(`/api/turnos/${turno.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ attendance }),
+      });
+      const newStatus: AppointmentStatus = attendance === "attended" ? "completed" : "no_show";
+      onUpdate(turno.id, { status: newStatus });
+      onOpenChange(false);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <Dialog.Root open={open} onOpenChange={(open) => { if (!open) handleDiscard(); }}>
@@ -195,6 +222,33 @@ export default function TurnoDetailModal({
               )}
             </div>
           </div>
+
+          {/* Marcar asistencia — solo si la sesion ya termino */}
+          {showAttendanceButtons && (
+            <div className="mb-5 rounded-lg border border-primary/30 bg-primary-light/30 p-3">
+              <p className="text-[12px] font-medium text-text-primary mb-2">
+                ¿El paciente asistió a la sesión?
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => markAttendance("attended")}
+                  disabled={saving}
+                  className="flex flex-1 items-center justify-center gap-1 rounded-md bg-primary px-3 py-2 text-[12px] font-medium text-white disabled:opacity-60"
+                >
+                  <Check size={13} /> Asistió
+                </button>
+                <button
+                  type="button"
+                  onClick={() => markAttendance("no_show")}
+                  disabled={saving}
+                  className="flex flex-1 items-center justify-center gap-1 rounded-md border border-[#E24B4A]/40 bg-white px-3 py-2 text-[12px] font-medium text-[#E24B4A] hover:bg-[#FEF0EF] disabled:opacity-60"
+                >
+                  <XCircle size={13} /> No vino
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Notas */}
           <div className="mb-6">

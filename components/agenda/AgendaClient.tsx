@@ -14,7 +14,7 @@ import type { OnboardingSteps } from "@/components/agenda/SetupCard";
 interface AgendaClientProps {
   appointments: SerializedAppointment[];
   pendingTransfers: SerializedAppointment[];
-  initialDate: string;
+  initialDateStr: string; // "YYYY-MM-DD" — parseado como medianoche local
   highlightId: string | null;
   onboardingSteps: OnboardingSteps;
 }
@@ -22,12 +22,19 @@ interface AgendaClientProps {
 export default function AgendaClient({
   appointments,
   pendingTransfers,
-  initialDate,
+  initialDateStr,
   highlightId,
   onboardingSteps,
 }: AgendaClientProps) {
   const router = useRouter();
-  const selectedDate = new Date(initialDate);
+
+  // Parseo manual a medianoche LOCAL — `new Date("2026-04-29")` daria
+  // medianoche UTC, que en TZ negativos cae en el dia anterior local y rompe
+  // todos los isSameDay del cliente.
+  const selectedDate = useMemo(() => {
+    const [y, m, d] = initialDateStr.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }, [initialDateStr]);
 
   // Refrescar la agenda cuando:
   //   1. El componente monta (entrada/navegacion a /agenda)

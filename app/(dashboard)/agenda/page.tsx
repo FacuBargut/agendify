@@ -8,7 +8,7 @@ import { auth } from "@/lib/auth";
 // hecho (usa cookies via auth()), pero lo declaramos explicito por las dudas.
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
-import { startOfDay, endOfDay } from "date-fns";
+import { startOfDay, endOfDay, format } from "date-fns";
 import Header from "@/components/layout/Header";
 import BottomNav from "@/components/layout/BottomNav";
 import AgendaClient from "@/components/agenda/AgendaClient";
@@ -112,13 +112,19 @@ export default async function AgendaPage({
   const serialized = appointments.map(serialize);
   const pendingSerialized = pendingTransfers.map(serialize);
 
+  // Pasar la fecha como YYYY-MM-DD (no como ISO UTC) — el cliente la parsea
+  // como medianoche local. Sin esto, en TZ negativos (AR = UTC-3) "abril 29
+  // 00:00 UTC" se renderiza como "abril 28" local y isSameDay descarta los
+  // turnos de ese dia.
+  const initialDateStr = format(date, "yyyy-MM-dd");
+
   return (
     <>
       <Header />
       <AgendaClient
         appointments={serialized}
         pendingTransfers={pendingSerialized}
-        initialDate={date.toISOString()}
+        initialDateStr={initialDateStr}
         highlightId={highlight ?? null}
         onboardingSteps={onboardingSteps}
       />

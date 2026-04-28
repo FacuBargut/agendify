@@ -18,7 +18,9 @@ const nextConfig: NextConfig = {
 
 export default withPWA({
   dest: "public",
-  register: true,
+  // En App Router next-pwa NO auto-registra (inyecta en main.js, no main-app.js).
+  // Lo registramos manualmente desde components/providers/PushProvider.tsx.
+  register: false,
   skipWaiting: true,
   disable: process.env.NODE_ENV === "development",
   runtimeCaching: [

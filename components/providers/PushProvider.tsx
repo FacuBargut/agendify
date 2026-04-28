@@ -31,6 +31,17 @@ export default function PushProvider({ children }: { children: React.ReactNode }
       return;
     }
     setPermission(Notification.permission);
+
+    // next-pwa v5 no auto-registra el SW en App Router (inyecta el script en
+    // main.js, pero App Router carga main-app.js). Registramos manualmente.
+    navigator.serviceWorker
+      .register("/sw.js", { scope: "/" })
+      .then((reg) => {
+        console.log("[SW] registered, scope:", reg.scope);
+      })
+      .catch((err) => {
+        console.error("[SW] registration failed:", err);
+      });
   }, []);
 
   useEffect(() => {
@@ -68,18 +79,25 @@ export default function PushProvider({ children }: { children: React.ReactNode }
   );
 }
 
-async function swReady(timeoutMs = 10_000): Promise<ServiceWorkerRegistration> {
-  // Primero intentar obtener el SW ya registrado
-  const regs = await navigator.serviceWorker.getRegistrations();
-  if (regs.length === 0) {
-    throw new Error("No hay Service Worker registrado. Reinstalá la app desde Safari → Compartir → Añadir a inicio.");
+async function swReady(timeoutMs = 15_000): Promise<ServiceWorkerRegistration> {
+  // Si todavía no hay registro, intentar registrar ahora (defensivo: PushProvider
+  // ya lo hace al montar, pero el usuario podría tocar Activar antes de que termine).
+  const existing = await navigator.serviceWorker.getRegistrations();
+  if (existing.length === 0) {
+    try {
+      await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+    } catch (err) {
+      throw new Error(
+        `No se pudo registrar el Service Worker: ${err instanceof Error ? err.message : String(err)}`
+      );
+    }
   }
 
   return Promise.race([
     navigator.serviceWorker.ready,
     new Promise<never>((_, reject) =>
       setTimeout(
-        () => reject(new Error("El Service Worker tardó demasiado en responder. Cerrá y volvé a abrir la app.")),
+        () => reject(new Error("El Service Worker tardó demasiado en activarse. Cerrá y volvé a abrir la app.")),
         timeoutMs
       )
     ),

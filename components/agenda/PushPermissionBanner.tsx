@@ -17,13 +17,25 @@ export default function PushPermissionBanner() {
   const [needsReconnect, setNeedsReconnect] = useState(false);
 
   useEffect(() => {
-    setDismissed(!!localStorage.getItem(DISMISSED_KEY));
+    try {
+      setDismissed(!!localStorage.getItem(DISMISSED_KEY));
+    } catch {
+      // localStorage puede tirar QuotaExceeded en Safari Private Browsing
+    }
 
-    // Si el permiso ya estaba concedido, verificar si la suscripción
-    // llegó al servidor comprobando si hay endpoint guardado
+    // En iOS Safari (especialmente <16.4 o algunas configuraciones) el
+    // objeto global `Notification` puede no existir. Hay que guardarse de
+    // acceder directamente — un ReferenceError aca rompe la hydration de
+    // toda la pagina en mobile.
+    if (typeof Notification === "undefined") return;
+
     if (Notification.permission === "granted") {
-      const stored = localStorage.getItem(ENDPOINT_KEY);
-      if (!stored) setNeedsReconnect(true);
+      try {
+        const stored = localStorage.getItem(ENDPOINT_KEY);
+        if (!stored) setNeedsReconnect(true);
+      } catch {
+        // ignore
+      }
     }
   }, []);
 

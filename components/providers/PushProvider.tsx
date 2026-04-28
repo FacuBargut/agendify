@@ -32,8 +32,19 @@ export default function PushProvider({ children }: { children: React.ReactNode }
     }
     setPermission(Notification.permission);
 
-    // next-pwa v5 no auto-registra el SW en App Router (inyecta el script en
-    // main.js, pero App Router carga main-app.js). Registramos manualmente.
+    // Si entramos a la página y ya había un SW controlando (el viejo de
+    // next-pwa, roto), guardamos esa señal: cuando el SW cambie, recargamos
+    // la página para que quede bajo el nuevo SW limpio. Sin esto, el viejo
+    // sigue interceptando hasta que se cierran todas las tabs manualmente.
+    const hadController = !!navigator.serviceWorker.controller;
+    let reloaded = false;
+    const onControllerChange = () => {
+      if (reloaded) return;
+      reloaded = true;
+      console.log("[SW] controller changed → reload");
+      window.location.reload();
+    };
+
     navigator.serviceWorker
       .register("/sw.js", { scope: "/" })
       .then((reg) => {
@@ -42,6 +53,13 @@ export default function PushProvider({ children }: { children: React.ReactNode }
       .catch((err) => {
         console.error("[SW] registration failed:", err);
       });
+
+    if (hadController) {
+      navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
+      return () => {
+        navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
+      };
+    }
   }, []);
 
   useEffect(() => {

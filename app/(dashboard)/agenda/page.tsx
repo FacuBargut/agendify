@@ -1,6 +1,13 @@
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
+
+// Forzar render dinamico en cada request — sin esto el RSC payload puede
+// quedar cacheado y mostrar turnos viejos cuando el profesional entra de
+// nuevo despues de que un paciente reservo. La pagina ya es dinamica de
+// hecho (usa cookies via auth()), pero lo declaramos explicito por las dudas.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 import { startOfDay, endOfDay } from "date-fns";
 import Header from "@/components/layout/Header";
 import BottomNav from "@/components/layout/BottomNav";

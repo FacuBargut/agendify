@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import DateStrip from "@/components/agenda/DateStrip";
@@ -25,6 +25,26 @@ export default function AgendaClient({
 }: AgendaClientProps) {
   const router = useRouter();
   const selectedDate = new Date(initialDate);
+
+  // Refrescar la agenda cuando:
+  //   1. El componente monta (entrada/navegacion a /agenda)
+  //   2. La PWA vuelve a foreground (visibilitychange)
+  //   3. La ventana recupera el foco (focus)
+  // El App Router cachea el RSC payload en el cliente, asi que sin
+  // router.refresh() seguimos viendo turnos viejos al volver.
+  useEffect(() => {
+    router.refresh();
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") router.refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [router]);
 
   const parsed: Appointment[] = useMemo(
     () =>

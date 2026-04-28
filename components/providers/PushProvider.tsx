@@ -32,34 +32,24 @@ export default function PushProvider({ children }: { children: React.ReactNode }
     }
     setPermission(Notification.permission);
 
-    // Si entramos a la página y ya había un SW controlando (el viejo de
-    // next-pwa, roto), guardamos esa señal: cuando el SW cambie, recargamos
-    // la página para que quede bajo el nuevo SW limpio. Sin esto, el viejo
-    // sigue interceptando hasta que se cierran todas las tabs manualmente.
-    const hadController = !!navigator.serviceWorker.controller;
-    let reloaded = false;
-    const onControllerChange = () => {
-      if (reloaded) return;
-      reloaded = true;
-      console.log("[SW] controller changed → reload");
-      window.location.reload();
-    };
-
-    navigator.serviceWorker
-      .register("/sw.js", { scope: "/" })
-      .then((reg) => {
-        console.log("[SW] registered, scope:", reg.scope);
-      })
-      .catch((err) => {
-        console.error("[SW] registration failed:", err);
-      });
-
-    if (hadController) {
-      navigator.serviceWorker.addEventListener("controllerchange", onControllerChange);
-      return () => {
-        navigator.serviceWorker.removeEventListener("controllerchange", onControllerChange);
-      };
-    }
+    // El SW SOLO se registra cuando el usuario toca "Activar" en el banner
+    // (ver subscribe() abajo). No registramos en el mount para no interferir
+    // con flujos sensibles (OAuth, navegacion). Si habia un SW viejo de
+    // next-pwa controlando, lo desregistramos para evitar que intercepte
+    // requests con cache stale.
+    navigator.serviceWorker.getRegistrations().then((regs) => {
+      for (const reg of regs) {
+        reg.unregister().then((ok) => {
+          if (ok) console.log("[SW] unregistered old worker:", reg.scope);
+        });
+      }
+      // Limpiar caches que haya dejado el SW viejo
+      if ("caches" in window) {
+        caches.keys().then((keys) => {
+          for (const key of keys) caches.delete(key);
+        });
+      }
+    });
   }, []);
 
   useEffect(() => {
@@ -98,17 +88,14 @@ export default function PushProvider({ children }: { children: React.ReactNode }
 }
 
 async function swReady(timeoutMs = 15_000): Promise<ServiceWorkerRegistration> {
-  // Si todavía no hay registro, intentar registrar ahora (defensivo: PushProvider
-  // ya lo hace al montar, pero el usuario podría tocar Activar antes de que termine).
-  const existing = await navigator.serviceWorker.getRegistrations();
-  if (existing.length === 0) {
-    try {
-      await navigator.serviceWorker.register("/sw.js", { scope: "/" });
-    } catch (err) {
-      throw new Error(
-        `No se pudo registrar el Service Worker: ${err instanceof Error ? err.message : String(err)}`
-      );
-    }
+  // Registrar el SW si todavia no esta. Esto se llama SOLO cuando el usuario
+  // toca "Activar" para push, asi que registrar aca es seguro.
+  try {
+    await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+  } catch (err) {
+    throw new Error(
+      `No se pudo registrar el Service Worker: ${err instanceof Error ? err.message : String(err)}`
+    );
   }
 
   return Promise.race([

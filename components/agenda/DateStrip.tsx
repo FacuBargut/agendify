@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { addDays, format, isSameDay, isToday } from "date-fns";
-import { es } from "date-fns/locale";
+import { addDays, isSameDay, isToday } from "date-fns";
 import { cn } from "@/lib/utils";
 
 const DAY_LETTERS = ["D", "L", "M", "X", "J", "V", "S"];
@@ -14,12 +13,12 @@ function buildDays(): Date[] {
 }
 
 interface DateStripProps {
+  selectedDate: Date;
   onDateChange: (date: Date) => void;
 }
 
-export default function DateStrip({ onDateChange }: DateStripProps) {
+export default function DateStrip({ selectedDate, onDateChange }: DateStripProps) {
   const [days] = useState(buildDays);
-  const [selected, setSelected] = useState(() => new Date());
   const scrollRef = useRef<HTMLDivElement>(null);
   const todayRef = useRef<HTMLButtonElement>(null);
 
@@ -30,20 +29,15 @@ export default function DateStrip({ onDateChange }: DateStripProps) {
     });
   }, []);
 
-  function handleSelect(date: Date) {
-    setSelected(date);
-    onDateChange(date);
-  }
-
   return (
     <div
       ref={scrollRef}
       className="sticky top-16 z-30 flex gap-2 overflow-x-auto border-b border-border bg-background px-4 py-3 scrollbar-hide"
     >
       {days.map((day) => {
-        const isSelected = isSameDay(day, selected);
+        const isSelected = isSameDay(day, selectedDate);
         const isTodayDate = isToday(day);
-        const dayNum = format(day, "d");
+        const dayNum = day.getDate().toString();
         const dayLetter = DAY_LETTERS[day.getDay()];
 
         return (
@@ -51,7 +45,7 @@ export default function DateStrip({ onDateChange }: DateStripProps) {
             key={day.toISOString()}
             ref={isTodayDate ? todayRef : undefined}
             type="button"
-            onClick={() => handleSelect(day)}
+            onClick={() => onDateChange(day)}
             className={cn(
               "flex h-16 w-11 shrink-0 flex-col items-center justify-center rounded-lg transition-colors",
               isSelected

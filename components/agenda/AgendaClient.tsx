@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import DateStrip from "@/components/agenda/DateStrip";
@@ -30,14 +30,34 @@ export default function AgendaClient({
   onboardingSteps,
 }: AgendaClientProps) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  // Estado optimista de la fecha seleccionada — apenas el usuario tap un dia,
+  // actualizamos esto instantaneamente para que DateStrip cambie su highlight
+  // sin esperar al server. Se "limpia" cuando el server responde con la
+  // misma fecha (initialDateStr la alcanza).
+  const [optimisticDateStr, setOptimisticDateStr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (optimisticDateStr === initialDateStr) {
+      setOptimisticDateStr(null);
+    }
+  }, [initialDateStr, optimisticDateStr]);
+
+  const effectiveDateStr = optimisticDateStr ?? initialDateStr;
 
   // Parseo manual a medianoche LOCAL — `new Date("2026-04-29")` daria
   // medianoche UTC, que en TZ negativos cae en el dia anterior local y rompe
   // todos los isSameDay del cliente.
   const selectedDate = useMemo(() => {
-    const [y, m, d] = initialDateStr.split("-").map(Number);
+    const [y, m, d] = effectiveDateStr.split("-").map(Number);
     return new Date(y, m - 1, d);
-  }, [initialDateStr]);
+  }, [effectiveDateStr]);
+
+  // Mientras el server responde con datos del nuevo dia, mostramos skeleton
+  // — sin esto el usuario veria los turnos del dia ANTERIOR durante ~1s.
+  const isStale =
+    isPending || (optimisticDateStr !== null && optimisticDateStr !== initialDateStr);
 
   // Refrescar la agenda cuando:
   //   1. El componente monta (entrada/navegacion a /agenda)
@@ -76,12 +96,16 @@ export default function AgendaClient({
 
   function handleDateChange(date: Date) {
     const dateStr = format(date, "yyyy-MM-dd");
-    router.push(`/agenda?date=${dateStr}`);
+    if (dateStr === effectiveDateStr) return;
+    setOptimisticDateStr(dateStr);
+    startTransition(() => {
+      router.push(`/agenda?date=${dateStr}`);
+    });
   }
 
   return (
     <div className="page-enter">
-      <DateStrip onDateChange={handleDateChange} />
+      <DateStrip selectedDate={selectedDate} onDateChange={handleDateChange} />
       <main className="flex-1 pb-safe">
         {/* Banners */}
         <div className="pt-3">
@@ -94,6 +118,7 @@ export default function AgendaClient({
           appointments={parsed}
           selectedDate={selectedDate}
           highlightId={highlightId}
+          isLoading={isStale}
         />
       </main>
     </div>

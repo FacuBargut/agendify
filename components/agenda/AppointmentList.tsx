@@ -10,18 +10,24 @@ interface AppointmentListProps {
   appointments: Appointment[];
   selectedDate: Date;
   highlightId?: string | null;
+  isLoading?: boolean;
 }
 
 export default function AppointmentList({
   appointments,
   selectedDate,
   highlightId,
+  isLoading = false,
 }: AppointmentListProps) {
   const filtered = useMemo(() => {
     return appointments
       .filter((a) => isSameDay(a.date, selectedDate))
       .sort((a, b) => a.date.getTime() - b.date.getTime());
   }, [appointments, selectedDate]);
+
+  if (isLoading) {
+    return <AppointmentListSkeleton />;
+  }
 
   const stats = useMemo(() => {
     const now = new Date();
@@ -89,6 +95,51 @@ export default function AppointmentList({
             appointment={appointment}
             isHighlighted={highlightId === appointment.id}
           />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function AppointmentListSkeleton() {
+  return (
+    <div>
+      {/* Stats skeleton */}
+      <div className="flex gap-2.5 px-4 py-4">
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className="flex flex-1 flex-col items-center rounded-[10px] border border-border bg-surface px-3 py-2.5"
+          >
+            <div className="h-7 w-12 rounded bg-border/60 animate-pulse" />
+            <div className="mt-1.5 h-3 w-16 rounded bg-border/40 animate-pulse" />
+          </div>
+        ))}
+      </div>
+
+      {/* Card skeletons */}
+      <div className="px-4 space-y-2">
+        {[0, 1, 2].map((i) => (
+          <div
+            key={i}
+            className="rounded-lg border border-border bg-background p-3.5 animate-pulse"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col items-center gap-1">
+                <div className="h-5 w-10 rounded bg-border/60" />
+                <div className="h-2.5 w-8 rounded bg-border/40" />
+              </div>
+              <div className="h-9 w-9 rounded-full bg-border/60" />
+              <div className="flex-1 space-y-1.5">
+                <div className="h-3.5 w-32 rounded bg-border/60" />
+                <div className="h-2.5 w-24 rounded bg-border/40" />
+              </div>
+              <div className="flex flex-col items-end gap-1">
+                <div className="h-4 w-16 rounded-full bg-border/40" />
+                <div className="h-4 w-20 rounded-full bg-border/40" />
+              </div>
+            </div>
+          </div>
         ))}
       </div>
     </div>

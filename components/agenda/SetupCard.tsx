@@ -14,10 +14,15 @@ export interface OnboardingSteps {
 }
 
 const DISMISS_KEY = "agendify_setup_dismissed";
+// Persistente entre sesiones — una vez que copiaste o cerraste el banner
+// de "perfil completo", no volves a verlo. Si lo necesitas, el link sigue
+// disponible desde /perfil.
+const SHARE_DISMISS_KEY = "agendify_share_link_dismissed";
 
 export default function SetupCard({ steps }: { steps: OnboardingSteps }) {
   const router = useRouter();
   const [visible, setVisible] = useState(false);
+  const [shareVisible, setShareVisible] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const allDone = steps.profileDone && steps.availabilityDone && steps.cobroDone;
@@ -32,29 +37,53 @@ export default function SetupCard({ steps }: { steps: OnboardingSteps }) {
   const totalSteps = 4;
 
   useEffect(() => {
-    // No mostrar si ya completó todo
-    if (allDone) return;
+    if (allDone) {
+      try {
+        const dismissed = localStorage.getItem(SHARE_DISMISS_KEY);
+        if (!dismissed) setShareVisible(true);
+      } catch {
+        setShareVisible(true);
+      }
+      return;
+    }
     // No mostrar si el usuario eligió "recordarme más tarde" en esta sesión
-    const dismissed = sessionStorage.getItem(DISMISS_KEY);
-    if (!dismissed) setVisible(true);
+    try {
+      const dismissed = sessionStorage.getItem(DISMISS_KEY);
+      if (!dismissed) setVisible(true);
+    } catch {
+      setVisible(true);
+    }
   }, [allDone]);
 
   function dismiss() {
-    sessionStorage.setItem(DISMISS_KEY, "1");
+    try {
+      sessionStorage.setItem(DISMISS_KEY, "1");
+    } catch { /* ignore */ }
     setVisible(false);
+  }
+
+  function dismissShare() {
+    try {
+      localStorage.setItem(SHARE_DISMISS_KEY, "1");
+    } catch { /* ignore */ }
+    setShareVisible(false);
   }
 
   async function copyLink() {
     try {
       await navigator.clipboard.writeText(bookingUrl);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      // Mostrar feedback "Copiado" un instante y despues cerrar el banner.
+      setTimeout(() => {
+        dismissShare();
+      }, 1500);
     } catch {
       /* fallback: noop */
     }
   }
 
-  if (!visible && !allDone) return null;
+  if (allDone && !shareVisible) return null;
+  if (!allDone && !visible) return null;
 
   // ── Vista: todo completo → banner de éxito con link ──
   if (allDone) {
@@ -65,7 +94,7 @@ export default function SetupCard({ steps }: { steps: OnboardingSteps }) {
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#639922]">
               <Check size={16} strokeWidth={2.5} className="text-white" />
             </div>
-            <div>
+            <div className="flex-1 min-w-0">
               <p className="text-[13px] font-medium text-[#3B6D11]">
                 ¡Perfil completo! Ya podés compartir tu link
               </p>
@@ -73,6 +102,14 @@ export default function SetupCard({ steps }: { steps: OnboardingSteps }) {
                 Tus pacientes pueden reservar turnos desde ahora
               </p>
             </div>
+            <button
+              type="button"
+              onClick={dismissShare}
+              className="flex shrink-0 h-6 w-6 items-center justify-center rounded-full hover:bg-[#C0DD97]/60 transition-colors"
+              aria-label="Cerrar"
+            >
+              <X size={13} strokeWidth={2} className="text-[#3B6D11]" />
+            </button>
           </div>
 
           <div className="mt-3 flex items-center gap-2 rounded-lg border border-[#C0DD97] bg-white/70 px-3 py-2.5">

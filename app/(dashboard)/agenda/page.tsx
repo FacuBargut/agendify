@@ -75,8 +75,24 @@ export default async function AgendaPage({
     orderBy: { date: "asc" },
   });
 
-  const serialized: SerializedAppointment[] = appointments.map(
-    (a: typeof appointments[number]) => ({
+  // Pendientes de aprobacion — de CUALQUIER fecha. El profesional necesita
+  // verlos siempre que entra a /agenda, no solo cuando esta parado en el dia
+  // del turno reservado.
+  const now = new Date();
+  const pendingTransfers = await db.appointment.findMany({
+    where: {
+      professionalId: session.user.professionalId,
+      status: "pending_transfer",
+      OR: [
+        { transferExpiresAt: null },
+        { transferExpiresAt: { gt: now } },
+      ],
+    },
+    orderBy: { date: "asc" },
+  });
+
+  function serialize(a: (typeof appointments)[number]): SerializedAppointment {
+    return {
       id: a.id,
       patientName: a.patientName,
       patientPhone: a.patientPhone,
@@ -90,14 +106,18 @@ export default async function AgendaPage({
       notes: a.notes,
       transferProofRef: a.transferProofRef,
       transferExpiresAt: a.transferExpiresAt?.toISOString() ?? null,
-    })
-  );
+    };
+  }
+
+  const serialized = appointments.map(serialize);
+  const pendingSerialized = pendingTransfers.map(serialize);
 
   return (
     <>
       <Header />
       <AgendaClient
         appointments={serialized}
+        pendingTransfers={pendingSerialized}
         initialDate={date.toISOString()}
         highlightId={highlight ?? null}
         onboardingSteps={onboardingSteps}

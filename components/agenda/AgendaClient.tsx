@@ -7,11 +7,13 @@ import DateStrip from "@/components/agenda/DateStrip";
 import AppointmentList from "@/components/agenda/AppointmentList";
 import SetupCard from "@/components/agenda/SetupCard";
 import PushPermissionBanner from "@/components/agenda/PushPermissionBanner";
+import PendingTransfersBanner from "@/components/agenda/PendingTransfersBanner";
 import type { SerializedAppointment, Appointment, PaymentMethod } from "@/lib/types";
 import type { OnboardingSteps } from "@/components/agenda/SetupCard";
 
 interface AgendaClientProps {
   appointments: SerializedAppointment[];
+  pendingTransfers: SerializedAppointment[];
   initialDate: string;
   highlightId: string | null;
   onboardingSteps: OnboardingSteps;
@@ -19,6 +21,7 @@ interface AgendaClientProps {
 
 export default function AgendaClient({
   appointments,
+  pendingTransfers,
   initialDate,
   highlightId,
   onboardingSteps,
@@ -70,9 +73,10 @@ export default function AgendaClient({
     <div className="page-enter">
       <DateStrip onDateChange={handleDateChange} />
       <main className="flex-1 pb-safe">
-        {/* Banners de onboarding */}
+        {/* Banners */}
         <div className="pt-3">
           <PushPermissionBanner />
+          <PendingTransfersBanner pending={pendingTransfers} />
           <SetupCard steps={onboardingSteps} />
         </div>
         <AppointmentList

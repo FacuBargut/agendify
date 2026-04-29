@@ -55,6 +55,7 @@ model Appointment {
   patientId       String?
   patientName     String
   patientPhone    String
+  patientEmail    String?
   date            DateTime
   durationMin     Int      @default(50)
   status               String    @default("pending")

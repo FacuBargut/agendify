@@ -32,7 +32,7 @@ export default function NuevoPacienteModal({ onCreated }: NuevoPacienteModalProp
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !phone.trim()) {
-      setError("Nombre y WhatsApp son requeridos");
+      setError("Nombre y teléfono son requeridos");
       return;
     }
 
@@ -129,7 +129,7 @@ export default function NuevoPacienteModal({ onCreated }: NuevoPacienteModalProp
             {/* Phone */}
             <div>
               <label className="block text-[13px] font-medium text-text-secondary mb-1">
-                WhatsApp *
+                Teléfono *
               </label>
               <input
                 type="tel"

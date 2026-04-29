@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { startOfDay, endOfDay } from "date-fns";
 import { NextRequest, NextResponse } from "next/server";
+import { sendEmail, EMAIL_TEMPLATES, googleCalendarUrl } from "@/lib/email";
 
 export async function GET(request: NextRequest) {
   const session = await auth();
@@ -65,7 +66,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { patientId, patientName, patientPhone, date, time, notes, sendWhatsApp, saveAsPatient } = body;
+  const { patientId, patientName, patientPhone, patientEmail, date, time, notes, sendEmail: shouldSendEmail, saveAsPatient } = body;
 
   if (!patientName || !patientPhone || !date || !time) {
     return NextResponse.json(
@@ -105,11 +106,8 @@ export async function POST(request: Request) {
   // Find or create patient
   let patient = null;
   if (patientId) {
-    // Turno para paciente existente del listado
     patient = await db.patient.findUnique({ where: { id: patientId } });
   } else if (saveAsPatient !== false) {
-    // Paciente nuevo que el profesional quiere guardar en su listado
-    // Usamos upsert por si ya existe uno con ese teléfono
     patient = await db.patient.upsert({
       where: {
         professionalId_phone: {
@@ -117,16 +115,19 @@ export async function POST(request: Request) {
           phone: patientPhone,
         },
       },
-      update: { name: patientName },
+      update: { name: patientName, ...(patientEmail ? { email: patientEmail } : {}) },
       create: {
         professionalId: session.user.professionalId,
         name: patientName,
         phone: patientPhone,
+        email: patientEmail || null,
       },
     });
   }
-  // Si saveAsPatient === false: patient queda null, el turno guarda
-  // patientName/patientPhone directamente sin crear registro en Patient
+  // Si saveAsPatient === false: patient queda null
+
+  // Si no se paso email pero el paciente del listado tiene uno, lo usamos
+  const finalEmail = patientEmail || patient?.email || null;
 
   const appointment = await db.appointment.create({
     data: {
@@ -134,6 +135,7 @@ export async function POST(request: Request) {
       patientId: patient?.id || null,
       patientName,
       patientPhone,
+      patientEmail: finalEmail,
       date: appointmentDate,
       durationMin: professional.sessionDuration,
       status: "confirmed",
@@ -146,30 +148,29 @@ export async function POST(request: Request) {
     },
   });
 
-  // Send WhatsApp if requested
-  if (sendWhatsApp) {
-    try {
-      await fetch(
-        `${process.env.NEXT_PUBLIC_APP_URL}/api/whatsapp/send`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type: "confirmacion",
-            patientPhone,
-            patientName,
-            professionalName: professional.name,
-            professionalPhone: professional.phone,
-            date,
-            time,
-            depositAmount: appointment.depositAmount,
-            professionalSlug: professional.slug,
-          }),
-        }
-      );
-    } catch {
-      // WhatsApp send failure should not block turno creation
-    }
+  // Email de confirmacion al paciente si tenemos email + opt-in
+  if (shouldSendEmail && finalEmail) {
+    const sessionEnd = new Date(
+      appointmentDate.getTime() + appointment.durationMin * 60 * 1000
+    );
+    const calUrl = googleCalendarUrl({
+      title: `Sesión con ${professional.name}`,
+      description: `Turno reservado vía Agendify.${notes ? `\n\nNotas: ${notes}` : ""}`,
+      start: appointmentDate,
+      end: sessionEnd,
+    });
+
+    const tpl = EMAIL_TEMPLATES.bookingConfirmed({
+      patientName,
+      professionalName: professional.name,
+      date: appointmentDate,
+      durationMin: appointment.durationMin,
+      depositAmount: appointment.depositAmount ?? 0,
+      googleCalendarUrl: calUrl,
+    });
+    sendEmail({ to: finalEmail, ...tpl }).catch((err) =>
+      console.error("[Turnos] Error email manual:", err)
+    );
   }
 
   return NextResponse.json({ appointment }, { status: 201 });

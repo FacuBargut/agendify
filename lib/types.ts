@@ -74,6 +74,7 @@ export interface TimeSlot {
 export interface BookingFormData {
   patientName: string;
   patientPhone: string;
+  patientEmail: string;
   notes?: string;
 }
 

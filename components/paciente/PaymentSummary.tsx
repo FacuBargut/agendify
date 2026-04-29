@@ -25,6 +25,7 @@ interface PaymentSummaryProps {
   selectedTime: string;
   patientName: string;
   patientPhone: string;
+  patientEmail: string;
   notes?: string;
   isLoading: boolean;
   setIsLoading: (v: boolean) => void;
@@ -40,6 +41,7 @@ export default function PaymentSummary({
   selectedTime,
   patientName,
   patientPhone,
+  patientEmail,
   notes,
   isLoading,
   setIsLoading,
@@ -90,6 +92,7 @@ export default function PaymentSummary({
           professionalSlug,
           patientName,
           patientPhone,
+          patientEmail,
           date: selectedDate.toISOString(),
           time: selectedTime,
           notes: notes || "",
@@ -120,6 +123,7 @@ export default function PaymentSummary({
           professionalSlug,
           patientName,
           patientPhone,
+          patientEmail,
           date: selectedDate.toISOString(),
           time: selectedTime,
           notes: notes || "",

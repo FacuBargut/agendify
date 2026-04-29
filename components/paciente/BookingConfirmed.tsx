@@ -1,6 +1,6 @@
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { CheckCircle2, MessageCircle } from "lucide-react";
+import { CheckCircle2, Mail } from "lucide-react";
 
 interface BookingConfirmedProps {
   patientName: string;
@@ -53,12 +53,12 @@ export default function BookingConfirmed({
         </div>
       </div>
 
-      {/* WhatsApp notice */}
-      <div className="mt-4 w-full rounded-lg border border-border border-l-4 border-l-[#25D366] bg-background p-4">
+      {/* Email notice */}
+      <div className="mt-4 w-full rounded-lg border border-border border-l-4 border-l-primary bg-background p-4">
         <div className="flex items-start gap-3">
-          <MessageCircle size={20} className="mt-0.5 shrink-0 text-[#25D366]" />
+          <Mail size={20} className="mt-0.5 shrink-0 text-primary" />
           <p className="text-[13px] text-text-primary">
-            Recibirás una confirmación por WhatsApp en los próximos minutos
+            Te enviamos un mail con la confirmación y el link para agregarlo a Google Calendar.
           </p>
         </div>
       </div>

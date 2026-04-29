@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { sendWhatsApp, WA_MESSAGES } from "@/lib/twilio";
 import { createNotification } from "@/lib/notifications";
+import { sendEmail, EMAIL_TEMPLATES, googleCalendarUrl } from "@/lib/email";
 
 interface VerificarBody {
   action: "confirmar" | "rechazar";
@@ -71,18 +71,30 @@ export async function PATCH(
       depositAmount: appointment.depositAmount ?? 0,
     });
 
-    // Notificar al paciente
-    const msg = WA_MESSAGES.transferenciaConfirmadaPaciente({
-      patientName: appointment.patientName,
-      professionalName: professional.name,
-      date: appointment.date,
-      time: appointment.date.toTimeString().slice(0, 5),
-      depositAmount: appointment.depositAmount ?? 0,
-    });
+    // Email al paciente con link de Google Calendar
+    if (appointment.patientEmail) {
+      const sessionEnd = new Date(
+        appointment.date.getTime() + appointment.durationMin * 60 * 1000
+      );
+      const calUrl = googleCalendarUrl({
+        title: `Sesión con ${professional.name}`,
+        description: `Turno reservado vía Agendify.${appointment.notes ? `\n\nNotas: ${appointment.notes}` : ""}`,
+        start: appointment.date,
+        end: sessionEnd,
+      });
 
-    sendWhatsApp(appointment.patientPhone, msg).catch((err) =>
-      console.error("[Verificar] Error WA al paciente:", err)
-    );
+      const tpl = EMAIL_TEMPLATES.bookingConfirmed({
+        patientName: appointment.patientName,
+        professionalName: professional.name,
+        date: appointment.date,
+        durationMin: appointment.durationMin,
+        depositAmount: appointment.depositAmount ?? 0,
+        googleCalendarUrl: calUrl,
+      });
+      sendEmail({ to: appointment.patientEmail, ...tpl }).catch((err) =>
+        console.error("[Verificar] Error email confirmacion:", err)
+      );
+    }
 
     return NextResponse.json({ appointment: updated });
   }
@@ -108,18 +120,19 @@ export async function PATCH(
     depositAmount: appointment.depositAmount ?? 0,
   });
 
-  // Notificar al paciente
-  const msg = WA_MESSAGES.transferenciaRechazadaPaciente({
-    patientName: appointment.patientName,
-    professionalName: professional.name,
-    professionalPhone: professional.phone,
-    date: appointment.date,
-    time: appointment.date.toTimeString().slice(0, 5),
-  });
-
-  sendWhatsApp(appointment.patientPhone, msg).catch((err) =>
-    console.error("[Verificar] Error WA al paciente:", err)
-  );
+  // Email al paciente: rechazo
+  if (appointment.patientEmail) {
+    const tpl = EMAIL_TEMPLATES.transferRejected({
+      patientName: appointment.patientName,
+      professionalName: professional.name,
+      date: appointment.date,
+      durationMin: appointment.durationMin,
+      professionalEmail: professional.email,
+    });
+    sendEmail({ to: appointment.patientEmail, ...tpl }).catch((err) =>
+      console.error("[Verificar] Error email rechazo:", err)
+    );
+  }
 
   return NextResponse.json({ appointment: updated });
 }

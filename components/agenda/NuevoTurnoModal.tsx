@@ -40,7 +40,8 @@ export default function NuevoTurnoModal({
   const [date, setDate] = useState("");
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
-  const [sendWhatsApp, setSendWhatsApp] = useState(true);
+  const [sendEmail, setSendEmail] = useState(true);
+  const [patientEmail, setPatientEmail] = useState("");
 
   // Slots
   const [slots, setSlots] = useState<TimeSlot[]>([]);
@@ -81,11 +82,12 @@ export default function NuevoTurnoModal({
     setSelectedPatient(null);
     setPatientName("");
     setPatientPhone("");
+    setPatientEmail("");
     setSaveAsPatient(true);
     setDate("");
     setSelectedTime(null);
     setNotes("");
-    setSendWhatsApp(true);
+    setSendEmail(true);
     setSlots([]);
     setError("");
   }, []);
@@ -119,10 +121,11 @@ export default function NuevoTurnoModal({
           patientId: selectedPatient?.id || null,
           patientName: finalName,
           patientPhone: finalPhone,
+          patientEmail: patientEmail.trim() || null,
           date,
           time: selectedTime,
           notes: notes.trim() || null,
-          sendWhatsApp,
+          sendEmail,
           // Solo relevante cuando es paciente nuevo (no del listado)
           saveAsPatient: selectedPatient ? true : saveAsPatient,
         }),
@@ -315,7 +318,7 @@ export default function NuevoTurnoModal({
                     </div>
                     <div>
                       <label className="block text-[13px] font-medium text-text-secondary mb-1">
-                        WhatsApp *
+                        Teléfono *
                       </label>
                       <input
                         type="tel"
@@ -324,6 +327,18 @@ export default function NuevoTurnoModal({
                         placeholder="Ej: 3411234567"
                         className="w-full h-[44px] px-3 border border-border rounded-lg text-[14px] focus:border-primary focus:outline-none"
                         required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[13px] font-medium text-text-secondary mb-1">
+                        Email (opcional)
+                      </label>
+                      <input
+                        type="email"
+                        value={patientEmail}
+                        onChange={(e) => setPatientEmail(e.target.value)}
+                        placeholder="Ej: maria@gmail.com"
+                        className="w-full h-[44px] px-3 border border-border rounded-lg text-[14px] focus:border-primary focus:outline-none"
                       />
                     </div>
 
@@ -422,29 +437,31 @@ export default function NuevoTurnoModal({
                 />
               </div>
 
-              {/* WhatsApp toggle */}
-              <div className="flex items-center justify-between">
-                <span className="text-[13px] text-text-primary">
-                  Enviar confirmación por WhatsApp
-                </span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={sendWhatsApp}
-                  onClick={() => setSendWhatsApp(!sendWhatsApp)}
-                  className={cn(
-                    "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors",
-                    sendWhatsApp ? "bg-primary" : "bg-border"
-                  )}
-                >
-                  <span
+              {/* Email toggle — solo si hay email */}
+              {patientEmail.trim() || selectedPatient ? (
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] text-text-primary">
+                    Enviar confirmación por mail
+                  </span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={sendEmail}
+                    onClick={() => setSendEmail(!sendEmail)}
                     className={cn(
-                      "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition-transform mt-0.5",
-                      sendWhatsApp ? "translate-x-[22px]" : "translate-x-0.5"
+                      "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors",
+                      sendEmail ? "bg-primary" : "bg-border"
                     )}
-                  />
-                </button>
-              </div>
+                  >
+                    <span
+                      className={cn(
+                        "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition-transform mt-0.5",
+                        sendEmail ? "translate-x-[22px]" : "translate-x-0.5"
+                      )}
+                    />
+                  </button>
+                </div>
+              ) : null}
 
               {error && (
                 <p className="text-[13px] text-[#E24B4A]">{error}</p>

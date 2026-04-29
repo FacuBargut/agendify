@@ -2,11 +2,13 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { sendWhatsApp, WA_MESSAGES } from "@/lib/twilio";
 import { createNotification } from "@/lib/notifications";
+import { sendEmail, EMAIL_TEMPLATES } from "@/lib/email";
 
 interface TransferenciaBody {
   professionalSlug: string;
   patientName: string;
   patientPhone: string;
+  patientEmail: string;
   date: string;          // ISO string
   time: string;          // "HH:mm"
   notes?: string;
@@ -26,6 +28,7 @@ export async function POST(request: Request) {
       "professionalSlug",
       "patientName",
       "patientPhone",
+      "patientEmail",
       "date",
       "time",
       "totalAmount",
@@ -45,6 +48,7 @@ export async function POST(request: Request) {
       professionalSlug,
       patientName,
       patientPhone,
+      patientEmail,
       date,
       time,
       notes,
@@ -98,11 +102,12 @@ export async function POST(request: Request) {
           phone: patientPhone,
         },
       },
-      update: { name: patientName },
+      update: { name: patientName, email: patientEmail },
       create: {
         professionalId: professional.id,
         name: patientName,
         phone: patientPhone,
+        email: patientEmail,
       },
     });
 
@@ -118,6 +123,7 @@ export async function POST(request: Request) {
         patientId: patient.id,
         patientName,
         patientPhone,
+        patientEmail,
         date: appointmentDate,
         durationMin: professional.sessionDuration,
         status: "pending_transfer",
@@ -162,6 +168,18 @@ export async function POST(request: Request) {
     } else {
       console.warn(`[Transferencia] Profesional ${professionalSlug} sin teléfono configurado — no se envió WA`);
     }
+
+    // ── Email al paciente: "recibimos tu transferencia, esperando confirmacion"
+    const tpl = EMAIL_TEMPLATES.transferReceived({
+      patientName,
+      professionalName: professional.name,
+      date: appointmentDate,
+      durationMin: professional.sessionDuration,
+      depositAmount,
+    });
+    sendEmail({ to: patientEmail, ...tpl }).catch((err) =>
+      console.error("[Transferencia] Error email al paciente:", err)
+    );
 
     return NextResponse.json({
       appointmentId: appointment.id,

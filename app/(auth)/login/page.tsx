@@ -75,7 +75,7 @@ const LockIcon = () => (
 /* ─── Features panel izquierdo ───────────────────────────────── */
 const features = [
   "Agenda semanal con disponibilidad personalizada",
-  "Recordatorios automáticos por WhatsApp 48hs y 2hs antes",
+  "Recordatorios automáticos por mail con sync a Google Calendar",
   "Cobro de seña online via Mercado Pago",
   "Ficha e historial completo de cada paciente",
 ];

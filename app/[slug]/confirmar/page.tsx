@@ -1,4 +1,4 @@
-import { CheckCircle2, XCircle, Clock, MessageCircle } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, Mail } from "lucide-react";
 import { db } from "@/lib/db";
 import { formatPeso } from "@/lib/utils";
 
@@ -159,12 +159,12 @@ function SuccessView({
         </div>
       </div>
 
-      {/* WhatsApp notice */}
-      <div className="mt-4 w-full rounded-lg border border-border border-l-4 border-l-[#25D366] bg-background p-4">
+      {/* Email notice */}
+      <div className="mt-4 w-full rounded-lg border border-border border-l-4 border-l-primary bg-background p-4">
         <div className="flex items-start gap-3">
-          <MessageCircle size={20} className="mt-0.5 shrink-0 text-[#25D366]" />
+          <Mail size={20} className="mt-0.5 shrink-0 text-primary" />
           <p className="text-[13px] text-text-primary">
-            Recibirás una confirmación por WhatsApp en los próximos minutos
+            Recibirás un mail con la confirmación y un link para agregarlo a Google Calendar.
           </p>
         </div>
       </div>
@@ -211,7 +211,7 @@ function PendingView() {
       <p className="mt-2 text-center text-sm text-text-secondary">
         Tu pago está siendo procesado.
         <br />
-        Te avisaremos por WhatsApp cuando se confirme.
+        Te avisaremos por mail cuando se confirme.
       </p>
 
       {/* Info card */}

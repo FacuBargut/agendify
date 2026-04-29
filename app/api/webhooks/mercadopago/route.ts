@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { createNotification } from "@/lib/notifications";
+import { sendEmail, EMAIL_TEMPLATES, googleCalendarUrl } from "@/lib/email";
 
 interface WebhookBody {
   type: string;
@@ -43,6 +44,7 @@ export async function POST(request: Request) {
       professionalSlug: string;
       patientName: string;
       patientPhone: string;
+      patientEmail?: string;
       date: string;
       time: string;
       notes: string;
@@ -79,11 +81,12 @@ export async function POST(request: Request) {
             phone: ref.patientPhone,
           },
         },
-        update: { name: ref.patientName },
+        update: { name: ref.patientName, ...(ref.patientEmail ? { email: ref.patientEmail } : {}) },
         create: {
           professionalId: professional.id,
           name: ref.patientName,
           phone: ref.patientPhone,
+          email: ref.patientEmail ?? null,
         },
       });
 
@@ -94,6 +97,7 @@ export async function POST(request: Request) {
           patientId: patient.id,
           patientName: ref.patientName,
           patientPhone: ref.patientPhone,
+          patientEmail: ref.patientEmail ?? null,
           date: new Date(`${ref.date.split("T")[0]}T${ref.time}:00`),
           durationMin: professional.sessionDuration,
           status: "confirmed",
@@ -120,26 +124,30 @@ export async function POST(request: Request) {
         depositAmount: ref.depositAmount,
       });
 
-      // 5. Enviar WhatsApp de confirmación
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-      try {
-        await fetch(`${appUrl}/api/whatsapp/send`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            type: "confirmacion",
-            patientPhone: ref.patientPhone,
-            patientName: ref.patientName,
-            professionalName: professional.name,
-            professionalPhone: professional.phone,
-            date: ref.date,
-            time: ref.time,
-            depositAmount: ref.depositAmount,
-            professionalSlug: ref.professionalSlug,
-          }),
+      // 5. Email al paciente con confirmacion + link Google Calendar
+      if (ref.patientEmail) {
+        const appointmentDate = appointment.date;
+        const sessionEnd = new Date(
+          appointmentDate.getTime() + appointment.durationMin * 60 * 1000
+        );
+        const calUrl = googleCalendarUrl({
+          title: `Sesión con ${professional.name}`,
+          description: `Turno reservado vía Agendify.${ref.notes ? `\n\nNotas: ${ref.notes}` : ""}`,
+          start: appointmentDate,
+          end: sessionEnd,
         });
-      } catch (waError) {
-        console.error("[MP Webhook] Error enviando WhatsApp:", waError);
+
+        const tpl = EMAIL_TEMPLATES.bookingConfirmed({
+          patientName: ref.patientName,
+          professionalName: professional.name,
+          date: appointmentDate,
+          durationMin: appointment.durationMin,
+          depositAmount: ref.depositAmount,
+          googleCalendarUrl: calUrl,
+        });
+        sendEmail({ to: ref.patientEmail, ...tpl }).catch((err) =>
+          console.error("[MP Webhook] Error email confirmacion:", err)
+        );
       }
     }
 

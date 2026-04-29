@@ -5,6 +5,7 @@ interface CreateBookingBody {
   professionalSlug: string;
   patientName: string;
   patientPhone: string;
+  patientEmail: string;
   date: string;
   time: string;
   notes?: string;
@@ -40,6 +41,7 @@ export async function POST(request: Request) {
       "professionalSlug",
       "patientName",
       "patientPhone",
+      "patientEmail",
       "date",
       "time",
       "totalAmount",
@@ -59,6 +61,7 @@ export async function POST(request: Request) {
       professionalSlug,
       patientName,
       patientPhone,
+      patientEmail,
       date,
       time,
       notes,
@@ -118,6 +121,7 @@ export async function POST(request: Request) {
           professionalSlug,
           patientName,
           patientPhone,
+          patientEmail,
           date,
           time,
           notes: notes || "",

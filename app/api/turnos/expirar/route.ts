@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { sendWhatsApp, WA_MESSAGES } from "@/lib/twilio";
 import { createNotification } from "@/lib/notifications";
+import { sendEmail, EMAIL_TEMPLATES } from "@/lib/email";
 
 /**
  * GET /api/turnos/expirar
@@ -34,16 +34,18 @@ export async function GET() {
         data: { status: "cancelled", paymentStatus: "unpaid" },
       });
 
-      // Notificar al paciente
-      const msg = WA_MESSAGES.transferenciaExpiradaPaciente({
-        patientName: appointment.patientName,
-        professionalName: appointment.professional.name,
-        date: appointment.date,
-        time: appointment.date.toTimeString().slice(0, 5),
-        slug: appointment.professional.slug,
-      });
-
-      await sendWhatsApp(appointment.patientPhone, msg);
+      // Notificar al paciente por email
+      if (appointment.patientEmail) {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://www.agendify.com.ar";
+        const tpl = EMAIL_TEMPLATES.transferExpired({
+          patientName: appointment.patientName,
+          professionalName: appointment.professional.name,
+          date: appointment.date,
+          durationMin: appointment.durationMin,
+          rebookUrl: `${appUrl}/${appointment.professional.slug}`,
+        });
+        await sendEmail({ to: appointment.patientEmail, ...tpl });
+      }
 
       // Avisar al profesional con push + notificacion in-app
       await createNotification({

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { ArrowLeft, CalendarDays, Check, Loader2, Clock, MessageCircle } from "lucide-react";
+import { ArrowLeft, CalendarDays, Check, Loader2, Clock, Mail } from "lucide-react";
 import { cn, formatPeso } from "@/lib/utils";
 import BookingCalendar from "@/components/paciente/BookingCalendar";
 import TimeSlotGrid from "@/components/paciente/TimeSlotGrid";
@@ -117,12 +117,12 @@ function TransferPendingView({
         </div>
       </div>
 
-      {/* WhatsApp */}
-      <div className="mt-3 w-full rounded-lg border border-border border-l-4 border-l-[#25D366] bg-background p-4">
+      {/* Email */}
+      <div className="mt-3 w-full rounded-lg border border-border border-l-4 border-l-primary bg-background p-4">
         <div className="flex items-start gap-3">
-          <MessageCircle size={18} className="mt-0.5 shrink-0 text-[#25D366]" />
+          <Mail size={18} className="mt-0.5 shrink-0 text-primary" />
           <p className="text-[13px] text-text-primary">
-            Te avisaremos por WhatsApp cuando el profesional confirme tu turno.
+            Te avisaremos por mail cuando el profesional confirme tu turno.
           </p>
         </div>
       </div>
@@ -387,6 +387,7 @@ export default function BookingFlow({ professional }: BookingFlowProps) {
                 selectedTime={selectedTime}
                 patientName={formData.patientName}
                 patientPhone={formData.patientPhone}
+                patientEmail={formData.patientEmail}
                 notes={formData.notes}
                 isLoading={isLoading}
                 setIsLoading={setIsLoading}

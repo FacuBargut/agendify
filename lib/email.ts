@@ -2,7 +2,11 @@ import { Resend } from "resend";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
-const resend = new Resend(process.env.RESEND_API_KEY ?? "");
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY);
+  return _resend;
+}
 
 const FROM = process.env.RESEND_FROM_EMAIL ?? "Agendify <noreply@agendify.com.ar>";
 
@@ -198,7 +202,7 @@ export async function sendEmail(params: {
   }
 
   try {
-    const result = await resend.emails.send({
+    const result = await getResend().emails.send({
       from: FROM,
       to: params.to,
       subject: params.subject,

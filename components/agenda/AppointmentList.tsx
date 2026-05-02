@@ -25,10 +25,6 @@ export default function AppointmentList({
       .sort((a, b) => a.date.getTime() - b.date.getTime());
   }, [appointments, selectedDate]);
 
-  if (isLoading) {
-    return <AppointmentListSkeleton />;
-  }
-
   const stats = useMemo(() => {
     const now = new Date();
     const active = filtered.filter((a) => a.status !== "cancelled");
@@ -48,6 +44,10 @@ export default function AppointmentList({
       collected,
     };
   }, [filtered]);
+
+  if (isLoading) {
+    return <AppointmentListSkeleton />;
+  }
 
   if (filtered.length === 0) {
     return (

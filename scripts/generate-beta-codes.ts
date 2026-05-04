@@ -1,5 +1,8 @@
 // Genera N codigos beta con duracion configurable y los imprime al stdout
-// para copiar/mandar manualmente (WhatsApp, mail, etc.).
+// junto con magic links para copiar/mandar manualmente (WhatsApp, mail, etc.).
+//
+// El magic link prellena el codigo en /bienvenida — el pro toca el link,
+// se loguea con Google y solo aprieta "Canjear" (sin tipear nada).
 //
 // Uso:
 //   npx tsx scripts/generate-beta-codes.ts --count 10 --days 90 --notes "campania ig mayo"
@@ -82,8 +85,20 @@ async function main() {
     }
   }
 
+  // Para los magic links usamos NEXT_PUBLIC_APP_URL (mismo env que el resto
+  // de la app); si no existe, usamos el dominio de produccion.
+  const appUrl = (
+    process.env.NEXT_PUBLIC_APP_URL ?? "https://www.agendify.com.ar"
+  ).replace(/\/+$/, "");
+
   console.log(`\nGenerados ${created.length} codigos (${args.days} dias):\n`);
-  for (const c of created) console.log(`  ${c}`);
+  for (const c of created) {
+    console.log(`  ${c}`);
+    console.log(`    ${appUrl}/bienvenida?invite=${c}`);
+  }
+  console.log();
+  console.log("Tip: pegale al pro el link directamente — al tocarlo y");
+  console.log("loguearse con Google, el codigo queda prellenado.");
   console.log();
 
   await db.$disconnect();

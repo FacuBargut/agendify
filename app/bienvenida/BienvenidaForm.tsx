@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 interface Props {
   name: string;
@@ -9,7 +9,13 @@ interface Props {
 
 export default function BienvenidaForm({ name }: Props) {
   const router = useRouter();
-  const [code, setCode] = useState("");
+  const searchParams = useSearchParams();
+
+  // Si llegan via magic link (/bienvenida?invite=AGND-XXXX), prellenamos el
+  // input. El pro solo tiene que apretar "Canjear codigo".
+  const invitedCode = (searchParams.get("invite") ?? "").trim().toUpperCase();
+
+  const [code, setCode] = useState(invitedCode);
   const [loading, setLoading] = useState(false);
   const [skipping, setSkipping] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,8 +70,9 @@ export default function BienvenidaForm({ name }: Props) {
           Bienvenido, {firstName} 👋
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-text-secondary">
-          Estamos en beta cerrada. Si te invitamos con un codigo, ingresalo aca
-          para activar 90 dias gratis.
+          {invitedCode
+            ? "Tu codigo de invitacion esta listo. Confirmá para activar 90 dias gratis."
+            : "Estamos en beta cerrada. Si te invitamos con un codigo, ingresalo aca para activar 90 dias gratis."}
         </p>
 
         <form onSubmit={handleRedeem} className="mt-6 space-y-3">

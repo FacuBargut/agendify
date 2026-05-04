@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect } from "next/navigation";
@@ -19,5 +20,11 @@ export default async function BienvenidaPage() {
   if (!pro) redirect("/login");
   if (pro.onboardingCompletedAt) redirect("/agenda");
 
-  return <BienvenidaForm name={pro.name} />;
+  // Suspense necesario porque BienvenidaForm usa useSearchParams para leer
+  // el ?invite=XXXX de los magic links.
+  return (
+    <Suspense fallback={null}>
+      <BienvenidaForm name={pro.name} />
+    </Suspense>
+  );
 }

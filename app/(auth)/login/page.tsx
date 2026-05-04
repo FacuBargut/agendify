@@ -610,7 +610,7 @@ function LoginContent() {
           >
             Al continuar, aceptás los{" "}
             <a
-              href="#"
+              href="/terminos"
               style={{
                 color: "#718096",
                 textDecoration: "underline",
@@ -621,7 +621,7 @@ function LoginContent() {
             </a>{" "}
             y la{" "}
             <a
-              href="#"
+              href="/privacidad"
               style={{
                 color: "#718096",
                 textDecoration: "underline",

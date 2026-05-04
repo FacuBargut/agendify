@@ -9,6 +9,7 @@ import SetupCard from "@/components/agenda/SetupCard";
 import PushPermissionBanner from "@/components/agenda/PushPermissionBanner";
 import PendingTransfersBanner from "@/components/agenda/PendingTransfersBanner";
 import AwaitingReviewBanner from "@/components/agenda/AwaitingReviewBanner";
+import FeedbackWidget from "@/components/agenda/FeedbackWidget";
 import type { SerializedAppointment, Appointment, PaymentMethod } from "@/lib/types";
 import type { OnboardingSteps } from "@/components/agenda/SetupCard";
 
@@ -121,6 +122,7 @@ export default function AgendaClient({
           isLoading={isStale}
         />
       </main>
+      <FeedbackWidget />
     </div>
   );
 }

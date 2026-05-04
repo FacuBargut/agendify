@@ -46,12 +46,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           slug = `${slug}-${Date.now().toString(36)}`;
         }
 
+        // Trial 7 dias para pros sin codigo. Si despues canjean uno en
+        // /bienvenida, se sobreescribe a beta + 90 dias.
+        const trialExpires = new Date();
+        trialExpires.setDate(trialExpires.getDate() + 7);
+
         const newPro = await db.professional.create({
           data: {
             name,
             email: user.email,
             slug,
             avatarUrl: user.image || null,
+            subscriptionStatus: "trial",
+            subscriptionExpiresAt: trialExpires,
           },
         });
 

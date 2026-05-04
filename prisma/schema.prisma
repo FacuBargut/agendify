@@ -22,14 +22,58 @@ model Professional {
   active             Boolean  @default(true)
   transferAlias      String?                    // alias/CBU/CVU para transferencias
   mpSurchargePercent Float    @default(0)       // recargo % aplicado al cobrar con MP
+  // Suscripcion / acceso
+  subscriptionStatus    String    @default("trial")   // trial | beta | active | past_due | cancelled
+  subscriptionExpiresAt DateTime?                     // null = sin limite (admins, soporte)
+  mpSubscriptionId      String?                       // se usa cuando arranque MP Suscripciones (Fase 2)
+  onboardingCompletedAt DateTime?                     // marca que el pro paso por /bienvenida
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
-  availability      Availability[]
-  appointments      Appointment[]
-  patients          Patient[]
-  notifications     Notification[]
-  pushSubscriptions PushSubscription[]
+  availability        Availability[]
+  appointments        Appointment[]
+  patients            Patient[]
+  notifications       Notification[]
+  pushSubscriptions   PushSubscription[]
+  betaCodeRedemption  BetaCodeRedemption?
+  feedback            Feedback[]
+}
+
+// Codigo que un profesional canjea para arrancar con 90 dias gratis (configurable).
+// Generamos en lote via script y los repartimos manualmente (WhatsApp, mail).
+model BetaCode {
+  id               String    @id @default(cuid())
+  code             String    @unique
+  validForDays     Int       @default(90)
+  maxRedemptions   Int       @default(1)
+  redemptionsCount Int       @default(0)
+  expiresAt        DateTime?                          // si no se canjea antes, queda invalidado
+  notes            String?                            // contexto interno: "campania ig", "amigo X"
+  createdAt        DateTime  @default(now())
+
+  redemptions      BetaCodeRedemption[]
+}
+
+// Un pro solo puede canjear UN codigo de por vida (unique en professionalId).
+model BetaCodeRedemption {
+  id             String   @id @default(cuid())
+  codeId         String
+  professionalId String   @unique
+  redeemedAt     DateTime @default(now())
+
+  code         BetaCode     @relation(fields: [codeId], references: [id])
+  professional Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+}
+
+// Feedback in-app de profesionales en beta. Usado para iterar antes del paywall.
+model Feedback {
+  id             String   @id @default(cuid())
+  professionalId String
+  message        String
+  rating         Int?
+  createdAt      DateTime @default(now())
+
+  professional Professional @relation(fields: [professionalId], references: [id], onDelete: Cascade)
 }
 
 model Patient {
